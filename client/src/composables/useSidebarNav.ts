@@ -4,6 +4,7 @@ import { useRoute, type RouteLocationNormalizedLoaded, type RouteLocationRaw } f
 import {
   Activity,
   BarChart3,
+  BookMarked,
   BookPlus,
   Highlighter,
   History,
@@ -24,6 +25,9 @@ import { useBookRequestVisibility } from '@/features/book-requests/composables/u
 import { useAppInfo } from '@/features/settings/composables/useAppInfo'
 import { useJobsSummary } from '@/features/jobs/composables/useJobsSummary'
 import { formatList } from '@/i18n/formatters'
+import { GOODREADS_TITLE_KEY, installGoodreadsMessages } from '@/features/goodreads/i18n'
+
+installGoodreadsMessages()
 
 /** `primary` is pinned on top; useSidebarLayout places the others among the list sections in the user's order. */
 export const SIDEBAR_ZONE_IDS = ['primary', 'browse', 'reading'] as const
@@ -165,6 +169,14 @@ export const SIDEBAR_NAV_REGISTRY: readonly SidebarNavEntry[] = [
     zone: 'reading',
     to: { name: 'reading-history' },
     isActive: (route) => route.name === 'reading-history',
+  },
+  {
+    id: 'goodreads',
+    labelKey: GOODREADS_TITLE_KEY,
+    icon: BookMarked,
+    zone: 'reading',
+    to: { name: 'goodreads' },
+    isActive: (route) => route.name === 'goodreads',
   },
   {
     id: 'achievements',

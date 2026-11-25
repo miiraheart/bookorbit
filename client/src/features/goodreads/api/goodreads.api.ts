@@ -1,0 +1,51 @@
+import {
+  GOODREADS_PROVIDER_KEY,
+  type BookRequestStatus,
+  type GoodreadsOverview,
+  type GoodreadsShelfItem,
+  type GoodreadsShelfPage,
+} from '@bookorbit/types'
+import { apiJson, jsonBody } from '@/lib/api-json'
+
+const BASE = '/api/v1/goodreads'
+
+export function fetchGoodreadsOverview(): Promise<GoodreadsOverview> {
+  return apiJson<GoodreadsOverview>(BASE, undefined, 'goodreads.loadFailed')
+}
+
+export function fetchGoodreadsShelf(params: { shelf: string; q: string; offset: number; limit: number }): Promise<GoodreadsShelfPage> {
+  const query = new URLSearchParams({ shelf: params.shelf, offset: String(params.offset), limit: String(params.limit) })
+  if (params.q.trim()) query.set('q', params.q.trim())
+  return apiJson<GoodreadsShelfPage>(`${BASE}/items?${query}`, undefined, 'goodreads.loadFailed')
+}
+
+export function requestGoodreadsSync(): Promise<GoodreadsOverview> {
+  return apiJson<GoodreadsOverview>(`${BASE}/sync`, { method: 'POST' }, 'goodreads.syncFailed')
+}
+
+interface CreatedRequest {
+  request?: { id?: number; status?: BookRequestStatus }
+}
+
+/** The same route the request form uses, so dedupe, permissions and the audit trail all apply. */
+export async function requestGoodreadsBook(
+  item: GoodreadsShelfItem,
+  language: string | null,
+): Promise<{ id: number; status: BookRequestStatus } | null> {
+  const body = await apiJson<CreatedRequest>(
+    '/api/v1/book-requests',
+    jsonBody('POST', {
+      mediaKind: 'ebook',
+      title: item.title,
+      authors: item.authors,
+      ...(item.isbn13 ? { isbn13: item.isbn13 } : {}),
+      ...(item.coverUrl ? { coverUrl: item.coverUrl } : {}),
+      ...(language ? { language } : {}),
+      providerKey: GOODREADS_PROVIDER_KEY,
+      providerId: item.goodreadsId ?? item.key,
+    }),
+    'goodreads.requestFailed',
+  )
+  const id = body.request?.id
+  return typeof id === 'number' ? { id, status: body.request?.status ?? 'pending' } : null
+}

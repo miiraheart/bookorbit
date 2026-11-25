@@ -1,3 +1,4 @@
+import { GOODREADS_TITLE_KEY } from '@/features/goodreads/i18n'
 import {
   createRouter,
   createWebHistory,
@@ -619,6 +620,12 @@ export const routes: RouteRecordRaw[] = [
             return { name: 'achievements' }
           }
         },
+      },
+      {
+        path: '/goodreads',
+        name: 'goodreads',
+        component: () => import('@/features/goodreads/views/GoodreadsView.vue'),
+        meta: { titleRow: true, title: () => t(GOODREADS_TITLE_KEY) },
       },
       {
         path: '/history',

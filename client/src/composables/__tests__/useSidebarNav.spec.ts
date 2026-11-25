@@ -87,6 +87,7 @@ describe('sidebar nav registry', () => {
       'dashboard',
       'statistics',
       'reading-history',
+      'goodreads',
       'achievements',
       'authors',
       'series',
@@ -131,7 +132,7 @@ describe('sidebar nav registry', () => {
   it('groups Statistics, History, Achievements and Annotations in the Reading zone', () => {
     const reading = SIDEBAR_NAV_REGISTRY.filter((candidate) => candidate.zone === 'reading').map((candidate) => candidate.id)
 
-    expect(reading).toEqual(['statistics', 'reading-history', 'achievements', 'annotations'])
+    expect(reading).toEqual(['statistics', 'reading-history', 'goodreads', 'achievements', 'annotations'])
   })
 
   it('hides Achievements when the user has turned achievements off', () => {

@@ -93,6 +93,7 @@ import { AchievementModule } from './modules/achievement/achievement.module';
 import { HardcoverModule } from './modules/hardcover/hardcover.module';
 import { ReadwiseModule } from './modules/readwise/readwise.module';
 import { StorygraphModule } from './modules/storygraph/storygraph.module';
+import { GoodreadsModule } from './modules/goodreads/goodreads.module';
 import { CustomMetadataModule } from './modules/custom-metadata/custom-metadata.module';
 import { CustomIconModule } from './modules/custom-icon/custom-icon.module';
 import { AccountActivityModule } from './modules/account-activity/account-activity.module';
@@ -227,6 +228,7 @@ import { BulkRunsModule } from './modules/bulk-runs/bulk-runs.module';
     HardcoverModule,
     ReadwiseModule,
     StorygraphModule,
+    GoodreadsModule,
     AccountActivityModule,
     SharedReadingInsightsModule,
     BookDuplicatesModule,
