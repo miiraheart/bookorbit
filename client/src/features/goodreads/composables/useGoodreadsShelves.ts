@@ -1,11 +1,11 @@
 import { ref, watch, type Ref } from 'vue'
-import type { GoodreadsOverview, GoodreadsShelfRow } from '@bookorbit/types'
+import type { GoodreadsOverview, GoodreadsShelfRow, GoodreadsSort } from '@bookorbit/types'
 import { fetchGoodreadsOverview, fetchGoodreadsShelf } from '../api/goodreads.api'
 
 const PAGE_SIZE = 50
 
-/** The overview (tabs and counts) plus one shelf's rows, loaded a page at a time. */
-export function useGoodreadsShelves(shelf: Ref<string | null>, search: Ref<string>) {
+/** The overview (sources, tabs and counts) plus one shelf's rows, loaded a page at a time. */
+export function useGoodreadsShelves(source: Ref<string | null>, shelf: Ref<string | null>, sort: Ref<GoodreadsSort>, search: Ref<string>) {
   const overview = ref<GoodreadsOverview | null>(null)
   const rows = ref<GoodreadsShelfRow[]>([])
   const total = ref(0)
@@ -23,8 +23,9 @@ export function useGoodreadsShelves(shelf: Ref<string | null>, search: Ref<strin
   }
 
   async function loadRows(append = false): Promise<void> {
+    const sourceId = source.value
     const name = shelf.value
-    if (!name) {
+    if (!sourceId || !name) {
       rows.value = []
       total.value = 0
       return
@@ -32,7 +33,14 @@ export function useGoodreadsShelves(shelf: Ref<string | null>, search: Ref<strin
     const mine = ++generation
     loading.value = true
     try {
-      const page = await fetchGoodreadsShelf({ shelf: name, q: search.value, offset: append ? rows.value.length : 0, limit: PAGE_SIZE })
+      const page = await fetchGoodreadsShelf({
+        source: sourceId,
+        shelf: name,
+        sort: sort.value,
+        q: search.value,
+        offset: append ? rows.value.length : 0,
+        limit: PAGE_SIZE,
+      })
       if (mine !== generation) return
       rows.value = append ? [...rows.value, ...page.items] : page.items
       total.value = page.total
@@ -48,7 +56,7 @@ export function useGoodreadsShelves(shelf: Ref<string | null>, search: Ref<strin
     rows.value = rows.value.map((row) => (row.key === key ? { ...row, ...patch } : row))
   }
 
-  watch([shelf, search], () => void loadRows(false))
+  watch([source, shelf, sort, search], () => void loadRows(false))
 
   return { overview, rows, total, loading, error, loadOverview, loadRows, patchRow }
 }

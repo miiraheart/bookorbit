@@ -56,9 +56,30 @@ export class GoodreadsShelfItemDto {
 }
 
 export class ReplaceGoodreadsSnapshotDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  source?: string;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(10000)
   @ValidateNested({ each: true })
   @Type(() => GoodreadsShelfItemDto)
-  items!: GoodreadsShelfItemDto[];
+  items?: GoodreadsShelfItemDto[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  error?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  sourceName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  sourceRef?: string | null;
 }

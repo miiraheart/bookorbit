@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { RequestUser } from '../../common/types/request-user';
-import { ListGoodreadsItemsDto, ReplaceGoodreadsSnapshotDto } from './dto';
+import { AddGoodreadsSourceDto, ListGoodreadsItemsDto, RenameGoodreadsSourceDto, ReplaceGoodreadsSnapshotDto } from './dto';
 import { GoodreadsService } from './goodreads.service';
 
 /** Every route is the caller's own shelves: nothing here reads or writes another user's data. */
@@ -28,5 +28,20 @@ export class GoodreadsController {
   @Post('sync')
   requestSync(@CurrentUser() user: RequestUser) {
     return this.service.requestSync(user.id);
+  }
+
+  @Post('sources')
+  addSource(@CurrentUser() user: RequestUser, @Body() dto: AddGoodreadsSourceDto) {
+    return this.service.addSource(user.id, dto);
+  }
+
+  @Patch('sources/:id')
+  renameSource(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: RenameGoodreadsSourceDto) {
+    return this.service.renameSource(user.id, id, dto.name);
+  }
+
+  @Delete('sources/:id')
+  removeSource(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.removeSource(user.id, id);
   }
 }

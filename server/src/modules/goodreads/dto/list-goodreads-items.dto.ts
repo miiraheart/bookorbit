@@ -1,10 +1,20 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import type { GoodreadsSort } from '@bookorbit/types';
 
 export class ListGoodreadsItemsDto {
   @IsString()
   @MaxLength(100)
   shelf!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  source?: string;
+
+  @IsOptional()
+  @IsIn(['newest', 'title', 'author'])
+  sort?: GoodreadsSort;
 
   @IsOptional()
   @IsString()

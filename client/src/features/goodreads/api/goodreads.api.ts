@@ -1,9 +1,11 @@
 import {
   GOODREADS_PROVIDER_KEY,
+  type BookRequestBulkResult,
   type BookRequestStatus,
   type GoodreadsOverview,
   type GoodreadsShelfItem,
   type GoodreadsShelfPage,
+  type GoodreadsSort,
 } from '@bookorbit/types'
 import { apiJson, jsonBody } from '@/lib/api-json'
 
@@ -13,14 +15,39 @@ export function fetchGoodreadsOverview(): Promise<GoodreadsOverview> {
   return apiJson<GoodreadsOverview>(BASE, undefined, 'goodreads.loadFailed')
 }
 
-export function fetchGoodreadsShelf(params: { shelf: string; q: string; offset: number; limit: number }): Promise<GoodreadsShelfPage> {
-  const query = new URLSearchParams({ shelf: params.shelf, offset: String(params.offset), limit: String(params.limit) })
+export function fetchGoodreadsShelf(params: {
+  source: string
+  shelf: string
+  sort: GoodreadsSort
+  q: string
+  offset: number
+  limit: number
+}): Promise<GoodreadsShelfPage> {
+  const query = new URLSearchParams({
+    source: params.source,
+    shelf: params.shelf,
+    sort: params.sort,
+    offset: String(params.offset),
+    limit: String(params.limit),
+  })
   if (params.q.trim()) query.set('q', params.q.trim())
   return apiJson<GoodreadsShelfPage>(`${BASE}/items?${query}`, undefined, 'goodreads.loadFailed')
 }
 
 export function requestGoodreadsSync(): Promise<GoodreadsOverview> {
   return apiJson<GoodreadsOverview>(`${BASE}/sync`, { method: 'POST' }, 'goodreads.syncFailed')
+}
+
+export function addGoodreadsSource(url: string): Promise<GoodreadsOverview> {
+  return apiJson<GoodreadsOverview>(`${BASE}/sources`, jsonBody('POST', { url: url.trim() }), 'goodreads.sourceAddFailed')
+}
+
+export function renameGoodreadsSource(id: string, name: string): Promise<GoodreadsOverview> {
+  return apiJson<GoodreadsOverview>(`${BASE}/sources/${encodeURIComponent(id)}`, jsonBody('PATCH', { name }), 'goodreads.sourceRenameFailed')
+}
+
+export function removeGoodreadsSource(id: string): Promise<GoodreadsOverview> {
+  return apiJson<GoodreadsOverview>(`${BASE}/sources/${encodeURIComponent(id)}`, { method: 'DELETE' }, 'goodreads.sourceRemoveFailed')
 }
 
 interface CreatedRequest {
@@ -48,4 +75,9 @@ export async function requestGoodreadsBook(
   )
   const id = body.request?.id
   return typeof id === 'number' ? { id, status: body.request?.status ?? 'pending' } : null
+}
+
+/** BookOrbit's own bulk cancel: each request keeps the file rule cancelling it alone would apply. */
+export function cancelGoodreadsRequests(ids: number[]): Promise<BookRequestBulkResult> {
+  return apiJson<BookRequestBulkResult>('/api/v1/book-requests/cancel', jsonBody('POST', { ids }), 'goodreads.cancelFailed')
 }

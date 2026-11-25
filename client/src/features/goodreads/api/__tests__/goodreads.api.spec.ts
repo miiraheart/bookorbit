@@ -8,7 +8,7 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import { api } from '@/lib/api'
-import { fetchGoodreadsShelf, requestGoodreadsBook } from '../goodreads.api'
+import { addGoodreadsSource, cancelGoodreadsRequests, fetchGoodreadsShelf, removeGoodreadsSource, requestGoodreadsBook } from '../goodreads.api'
 
 const mockApi = vi.mocked(api)
 
@@ -65,11 +65,32 @@ describe('goodreads api', () => {
     expect(body).not.toHaveProperty('coverUrl')
   })
 
-  it('asks for one shelf page with the trimmed search', async () => {
+  it('asks for one source shelf page with its sort and the trimmed search', async () => {
     mockApi.mockResolvedValue(jsonResponse({ total: 0, items: [] }))
 
-    await fetchGoodreadsShelf({ shelf: 'to-read', q: '  dune ', offset: 50, limit: 50 })
+    await fetchGoodreadsShelf({ source: 'list-264', shelf: 'list', sort: 'title', q: '  dune ', offset: 50, limit: 50 })
 
-    expect(mockApi.mock.calls[0]?.[0]).toBe('/api/v1/goodreads/items?shelf=to-read&offset=50&limit=50&q=dune')
+    expect(mockApi.mock.calls[0]?.[0]).toBe('/api/v1/goodreads/items?source=list-264&shelf=list&sort=title&offset=50&limit=50&q=dune')
+  })
+
+  it('follows and unfollows sources through the goodreads routes', async () => {
+    mockApi.mockImplementation(() => Promise.resolve(jsonResponse({ sources: [] })))
+
+    await addGoodreadsSource('  https://www.goodreads.com/list/show/264  ')
+    await removeGoodreadsSource('list-264')
+
+    expect(mockApi.mock.calls[0]?.[0]).toBe('/api/v1/goodreads/sources')
+    expect(JSON.parse(String(mockApi.mock.calls[0]?.[1]?.body))).toEqual({ url: 'https://www.goodreads.com/list/show/264' })
+    expect(mockApi.mock.calls[1]?.[0]).toBe('/api/v1/goodreads/sources/list-264')
+    expect(mockApi.mock.calls[1]?.[1]?.method).toBe('DELETE')
+  })
+
+  it('cancels through BookOrbit’s own bulk cancel route', async () => {
+    mockApi.mockResolvedValue(jsonResponse({ updated: [], failed: [] }))
+
+    await cancelGoodreadsRequests([4, 5])
+
+    expect(mockApi.mock.calls[0]?.[0]).toBe('/api/v1/book-requests/cancel')
+    expect(JSON.parse(String(mockApi.mock.calls[0]?.[1]?.body))).toEqual({ ids: [4, 5] })
   })
 })
