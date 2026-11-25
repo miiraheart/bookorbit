@@ -95,8 +95,22 @@ const USER_AGENT = 'BookOrbit';
  * A release URL comes from an indexer, which is the one thing on this path that is never trusted,
  * so a direct fetch never reaches the private network. Torrent clients get a per-row opt-in
  * because they live on the LAN; there is no equivalent reason for a file to.
+ *
+ * The exception is a host the operator names in BOOKORBIT_DIRECT_DOWNLOAD_PRIVATE_HOSTS, such as a
+ * sidecar that stages files for a plugin. Matched on the hostname of each hop, never a suffix.
  */
-const ALLOW_PRIVATE = false;
+function allowsPrivate(url: URL | string): boolean {
+  const allowed = (process.env.BOOKORBIT_DIRECT_DOWNLOAD_PRIVATE_HOSTS ?? '')
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowed.length === 0) return false;
+  try {
+    return allowed.includes(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
 
 interface Progress {
   state: DownloadStatus['state'];
@@ -158,7 +172,7 @@ export class DirectDownloadService {
   }
 
   async add(release: DirectDownloadRequest): Promise<{ clientKey: string }> {
-    const url = await ensureSafeUrl(release.fileUrl, { allowPrivate: ALLOW_PRIVATE });
+    const url = await ensureSafeUrl(release.fileUrl, { allowPrivate: allowsPrivate(release.fileUrl) });
 
     const directory = join(this.root, release.clientKey);
     const target = safeJoin(directory, stagedDirectFileName(release.fileName, release.format));
@@ -181,7 +195,7 @@ export class DirectDownloadService {
       return false;
     }
 
-    const url = await ensureSafeUrl(download.directUrl, { allowPrivate: ALLOW_PRIVATE });
+    const url = await ensureSafeUrl(download.directUrl, { allowPrivate: allowsPrivate(download.directUrl) });
     const directory = join(this.root, download.clientKey);
     const target = safeJoin(directory, download.directFileName);
     const existingBytes = await stat(target)
@@ -482,7 +496,8 @@ export class DirectDownloadService {
         const location = response.headers.get('location');
         await response.body?.cancel().catch(() => {});
         if (!location) throw new Error(`That URL answered ${response.status} without saying where to go`);
-        current = await ensureSafeUrl(new URL(location, current).href, { allowPrivate: ALLOW_PRIVATE });
+        const next = new URL(location, current).href;
+        current = await ensureSafeUrl(next, { allowPrivate: allowsPrivate(next) });
 
         continue;
       }
@@ -522,7 +537,7 @@ export class DirectDownloadService {
         // Pinned, because the URL came from an indexer or a plugin rather than from an operator:
         // this is exactly the caller the resolve-twice window in `safeFetch` is not acceptable
         // for, so the address that passed policy is the address the socket opens to.
-        { allowPrivate: ALLOW_PRIVATE, profile: null, pinResolvedAddress: true },
+        { allowPrivate: allowsPrivate(url), profile: null, pinResolvedAddress: true },
       );
     } finally {
       clearTimeout(deadline);

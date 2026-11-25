@@ -438,6 +438,36 @@ describe('DirectDownloadService', () => {
     expect((await settle()).state).toBe('failed');
   });
 
+  describe('operator allowlisted private hosts', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('fetches from a private host named in the allowlist', async () => {
+      vi.stubEnv('BOOKORBIT_DIRECT_DOWNLOAD_PRIVATE_HOSTS', 'gateway.internal, 127.0.0.1');
+      fetchMock.mockResolvedValue(fileResponse('staged by a sidecar'));
+
+      await service.add({ fileUrl: 'http://127.0.0.1:8090/files/abc', fileName: 'book.epub', clientKey: HASH });
+
+      expect((await settle()).state).toBe('completed');
+    });
+
+    it('still refuses a private host that is not in the allowlist', async () => {
+      vi.stubEnv('BOOKORBIT_DIRECT_DOWNLOAD_PRIVATE_HOSTS', '10.0.0.5');
+
+      await expect(service.add({ fileUrl: 'http://127.0.0.1:8090/files/abc', fileName: 'book.epub', clientKey: HASH })).rejects.toThrow();
+    });
+
+    it('still refuses a redirect from an allowlisted host to one that is not', async () => {
+      vi.stubEnv('BOOKORBIT_DIRECT_DOWNLOAD_PRIVATE_HOSTS', '127.0.0.1');
+      fetchMock.mockResolvedValueOnce(new Response('', { status: 302, headers: { location: 'http://10.0.0.9/secret' } }));
+
+      await service.add({ fileUrl: 'http://127.0.0.1:8090/files/abc', fileName: 'book.epub', clientKey: HASH });
+
+      expect((await settle()).state).toBe('failed');
+    });
+  });
+
   it('gives up rather than following redirects forever', async () => {
     fetchMock.mockResolvedValue(new Response('', { status: 302, headers: { location: 'https://archive.org/again' } }));
 
