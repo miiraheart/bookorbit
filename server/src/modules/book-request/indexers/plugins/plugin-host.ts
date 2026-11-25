@@ -36,7 +36,7 @@ import { normalizeProviderSeedRatio, normalizeProviderSeedTimeMinutes } from '..
  * can sit behind this one four times over while the per-indexer deadline expires unheard. Where a
  * caller has a deadline of its own, `deadlineFor` combines the two.
  */
-const REQUEST_TIMEOUT_MS = 25_000;
+const REQUEST_TIMEOUT_MS = 90_000;
 /**
  * A ceiling on the body of any one request too, and likewise one a plugin cannot opt out of.
  *

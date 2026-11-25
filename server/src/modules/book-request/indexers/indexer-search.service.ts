@@ -385,7 +385,7 @@ export class IndexerSearchService {
       this.searchesIsbn(config) && query.isbn13 ? { kind: 'isbn', value: query.isbn13 } : { kind: 'titleAuthor', value: buildSearchText(query) };
     let indexerScopedQuery: ReleaseQuery = indexerQuery.kind === 'isbn' ? query : { ...query, isbn13: null, isbn13s: [] };
 
-    const configuredTimeoutMs = (config.perIndexerTimeoutSeconds ?? 20) * 1000;
+    const configuredTimeoutMs = (config.perIndexerTimeoutSeconds ?? 90) * 1000;
     const managerRemainingMs = managerDeadlineAt === undefined ? configuredTimeoutMs : Math.max(1, managerDeadlineAt - Date.now());
     const deadline = AbortSignal.timeout(Math.min(configuredTimeoutMs, managerRemainingMs));
     try {

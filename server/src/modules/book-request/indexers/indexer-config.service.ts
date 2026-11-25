@@ -292,7 +292,7 @@ export class IndexerConfigService {
       isbnSearchDisabled: row.isbnSearchDisabled,
       settings: row.settings ?? null,
       networkProfile: manager?.networkProfile ?? row.networkProfile ?? null,
-      perIndexerTimeoutSeconds: manager?.perIndexerTimeoutSeconds ?? 20,
+      perIndexerTimeoutSeconds: manager?.perIndexerTimeoutSeconds ?? 90,
       overallSearchBudgetSeconds: manager?.overallSearchBudgetSeconds ?? null,
       autoExpandCategories: manager?.autoExpandCategories ?? false,
     };
