@@ -171,14 +171,6 @@ export const SIDEBAR_NAV_REGISTRY: readonly SidebarNavEntry[] = [
     isActive: (route) => route.name === 'reading-history',
   },
   {
-    id: 'goodreads',
-    labelKey: GOODREADS_TITLE_KEY,
-    icon: BookMarked,
-    zone: 'reading',
-    to: { name: 'goodreads' },
-    isActive: (route) => route.name === 'goodreads',
-  },
-  {
     id: 'achievements',
     labelKey: 'components.appHeader.achievements',
     icon: Trophy,
@@ -212,6 +204,14 @@ export const SIDEBAR_NAV_REGISTRY: readonly SidebarNavEntry[] = [
     badge: (context) =>
       context.outstandingRequestTotal > 0 ? { value: context.outstandingRequestTotal, label: context.outstandingRequestLabel, tone: 'accent' } : null,
     returnsWithWork: true,
+  },
+  {
+    id: 'goodreads',
+    labelKey: GOODREADS_TITLE_KEY,
+    icon: BookMarked,
+    zone: 'primary',
+    to: { name: 'goodreads' },
+    isActive: (route) => route.name === 'goodreads',
   },
   {
     id: 'tools',
