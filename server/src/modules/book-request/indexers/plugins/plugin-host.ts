@@ -26,6 +26,7 @@ import {
   type ReleaseFile,
   type ReleaseQuery,
   type ResolvedIndexerConfig,
+  type TorrentFetchResult,
 } from '../indexer-adapter';
 import { normalizeProviderSeedRatio, normalizeProviderSeedTimeMinutes } from '../seed-goal.utils';
 
@@ -113,10 +114,19 @@ export class PluginIndexerAdapter implements IndexerAdapter {
 
   get fetchTorrentFile() {
     if (!this.plugin.fetchTorrentFile) return undefined;
-    return async (release: ReleaseCandidate, config: ResolvedIndexerConfig): Promise<Buffer> => {
+    return async (release: ReleaseCandidate, config: ResolvedIndexerConfig): Promise<TorrentFetchResult> => {
       const bytes = await this.guard(config, () =>
         this.plugin.fetchTorrentFile!(toPluginRelease(release), toPluginConfig(config), this.host(config)),
       );
+      // A source that only learns its magnet when the release page is opened hands that back
+      // instead of bytes, so the page is fetched once per grab rather than once per search result.
+      if (!(bytes instanceof Uint8Array)) {
+        const magnet = text((bytes as { magnet?: unknown } | null)?.magnet, MAX_PLUGIN_URL_LENGTH);
+        if (!magnet?.startsWith('magnet:?')) {
+          throw new IndexerSearchException('error', `${config.name} returned neither a .torrent file nor a magnet link`);
+        }
+        return { magnet };
+      }
       // A plugin has no reason to be trusted about size, and this lands in memory.
       if (bytes.byteLength > MAX_TORRENT_FILE_BYTES) {
         throw new IndexerSearchException('error', `${config.name} returned something too large to be a .torrent file`);

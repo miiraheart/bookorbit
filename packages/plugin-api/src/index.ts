@@ -246,8 +246,11 @@ export interface IndexerPlugin {
 
   search(query: PluginReleaseQuery, config: PluginIndexerConfig, host: PluginHost, signal: AbortSignal): Promise<PluginReleaseCandidate[]>;
   test(config: PluginIndexerConfig, host: PluginHost): Promise<PluginTestResult>;
-  /** A source whose download link is credentialed and must be fetched with its own session. */
-  fetchTorrentFile?(release: PluginReleaseCandidate, config: PluginIndexerConfig, host: PluginHost): Promise<Uint8Array>;
+  /**
+   * A source whose download link is credentialed and must be fetched with its own session. May
+   * answer with `{ magnet }` when the magnet is only known once the release page is opened.
+   */
+  fetchTorrentFile?(release: PluginReleaseCandidate, config: PluginIndexerConfig, host: PluginHost): Promise<Uint8Array | { magnet: string }>;
   /** A source that serves the file itself. Declare this or `fetchTorrentFile`, never both. */
   resolveFile?(release: PluginReleaseCandidate, config: PluginIndexerConfig, host: PluginHost, signal: AbortSignal): Promise<PluginReleaseFile>;
   /** Sources whose session expires on its own clock, called on a schedule while enabled. */

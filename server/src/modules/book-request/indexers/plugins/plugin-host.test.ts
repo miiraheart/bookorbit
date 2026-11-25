@@ -354,6 +354,25 @@ describe('PluginIndexerAdapter', () => {
       });
     });
 
+    it('passes a magnet a plugin returns at grab time through to the client', async () => {
+      const magnet = `magnet:?xt=urn:btih:${'A'.repeat(40)}&dn=book`;
+      const { adapter } = makeAdapter({ fetchTorrentFile: () => Promise.resolve({ magnet }) });
+
+      await expect(
+        adapter.fetchTorrentFile!({ indexerId: 4, guid: 'g', title: 't', sizeBytes: null, seeders: null, leechers: null }, config()),
+      ).resolves.toEqual({ magnet });
+    });
+
+    it('refuses a grab answer that is neither bytes nor a magnet link', async () => {
+      const { adapter } = makeAdapter({
+        fetchTorrentFile: () => Promise.resolve({ magnet: 'https://example.org/not-a-magnet' }),
+      });
+
+      await expect(
+        adapter.fetchTorrentFile!({ indexerId: 4, guid: 'g', title: 't', sizeBytes: null, seeders: null, leechers: null }, config()),
+      ).rejects.toThrow(/neither a .torrent file nor a magnet link/);
+    });
+
     it('refuses a torrent file too large to be one', async () => {
       const { adapter } = makeAdapter({ fetchTorrentFile: () => Promise.resolve(new Uint8Array(4 * 1024 * 1024)) });
 
