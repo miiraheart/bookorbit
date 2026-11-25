@@ -5,7 +5,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import type {
   ChordDiagramData,
-  ReadingSessionSource,
+  ReadingSessionStatsSource,
   UserCompletionTimelinePoint,
   UserDailyReadingStat,
   UserProgressFunnel,
@@ -27,6 +27,7 @@ import { resolveTimeZone } from '../../common/utils/timezone.utils';
 import { DB } from '../../db';
 import { workKeySql } from '../../db/book-work-key';
 import * as schema from '../../db/schema';
+import { readingSessionStatsSource } from '../reading-session/reading-session-stats-source';
 import {
   bookFiles,
   bookGenres,
@@ -48,7 +49,7 @@ type SessionTimelineItemRow = {
   bookId: number;
   bookTitle: string | null;
   bookFormat: string | null;
-  source: ReadingSessionSource | null;
+  source: ReadingSessionStatsSource | null;
   startedAt: Date;
   endedAt: Date;
   durationSeconds: number;
@@ -69,7 +70,7 @@ export type ActivitySessionRow = {
   coverSource: string | null;
   metadataUpdatedAt: Date | null;
   format: string | null;
-  source: ReadingSessionSource | null;
+  source: ReadingSessionStatsSource | null;
   sessionType: string;
   startedAt: Date;
   endedAt: Date;
@@ -159,7 +160,7 @@ export class UserStatisticsRepository {
         coverSource: bookMetadata.coverSource,
         metadataUpdatedAt: bookMetadata.updatedAt,
         format: bookFiles.format,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         sessionType: readingSessions.sessionType,
         startedAt: readingSessions.startedAt,
         endedAt: readingSessions.endedAt,
@@ -538,7 +539,7 @@ export class UserStatisticsRepository {
     filterLibraryIds?: number[],
     days = 365,
     timeZone = 'UTC',
-  ): Promise<{ hour: number; format: string; source: ReadingSessionSource | null; readingSeconds: number; eventsCount: number }[]> {
+  ): Promise<{ hour: number; format: string; source: ReadingSessionStatsSource | null; readingSeconds: number; eventsCount: number }[]> {
     const libraryFilter = this.libraryFilter(this.intersectLibraryIds(accessibleLibraryIds, filterLibraryIds));
     const since = this.sinceDateForDays(days);
     const resolvedTimeZone = resolveTimeZone(timeZone, 'UTC');
@@ -549,7 +550,7 @@ export class UserStatisticsRepository {
       .select({
         hour: hourExpr.as('hour'),
         format: formatExpr.as('format'),
-        source: readingSessions.source,
+        source: readingSessionStatsSource.as('source'),
         durationSeconds: readingSessions.durationSeconds,
       })
       .from(readingSessions)
@@ -587,7 +588,7 @@ export class UserStatisticsRepository {
         bookId: readingSessions.bookId,
         bookTitle: bookMetadata.title,
         bookFormat: sql<string | null>`nullif(${bookFiles.format}, '')`,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         startedAt: readingSessions.startedAt,
         endedAt: readingSessions.endedAt,
         durationSeconds: readingSessions.durationSeconds,
@@ -623,7 +624,7 @@ export class UserStatisticsRepository {
         bookId: readingSessions.bookId,
         bookTitle: bookMetadata.title,
         bookFormat: sql<string | null>`nullif(${bookFiles.format}, '')`,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         startedAt: readingSessions.startedAt,
         endedAt: readingSessions.endedAt,
         durationSeconds: readingSessions.durationSeconds,
@@ -697,7 +698,7 @@ export class UserStatisticsRepository {
           bookId: readingSessions.bookId,
           bookTitle: bookMetadata.title,
           bookFormat: sql<string | null>`nullif(${bookFiles.format}, '')`,
-          source: readingSessions.source,
+          source: readingSessionStatsSource,
           startedAt: readingSessions.startedAt,
           endedAt: readingSessions.endedAt,
           durationSeconds: readingSessions.durationSeconds,
@@ -800,7 +801,7 @@ export class UserStatisticsRepository {
     accessibleLibraryIds: number[] | null,
     filterLibraryIds?: number[],
     days = 365,
-  ): Promise<{ dayOfWeek: number; source: ReadingSessionSource | null; format: string; readingSeconds: number; eventsCount: number }[]> {
+  ): Promise<{ dayOfWeek: number; source: ReadingSessionStatsSource | null; format: string; readingSeconds: number; eventsCount: number }[]> {
     const libraryFilter = this.libraryFilter(this.intersectLibraryIds(accessibleLibraryIds, filterLibraryIds));
     const since = this.sinceDateForDays(days);
     const dayOfWeekExpr = sql<number>`extract(dow from ${readingSessions.startedAt})::int`;
@@ -809,7 +810,7 @@ export class UserStatisticsRepository {
     return this.db
       .select({
         dayOfWeek: dayOfWeekExpr,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         format: formatExpr,
         readingSeconds: sql<number>`coalesce(sum(${readingSessions.durationSeconds}), 0)::int`,
         eventsCount: sql<number>`count(*)::int`,
@@ -818,7 +819,7 @@ export class UserStatisticsRepository {
       .leftJoin(bookFiles, eq(bookFiles.id, readingSessions.bookFileId))
       .innerJoin(books, eq(books.id, readingSessions.bookId))
       .where(and(eq(readingSessions.userId, userId), gte(readingSessions.startedAt, since), libraryFilter))
-      .groupBy(dayOfWeekExpr, readingSessions.source, formatExpr)
+      .groupBy(dayOfWeekExpr, readingSessionStatsSource, formatExpr)
       .orderBy(dayOfWeekExpr);
   }
 
@@ -939,7 +940,7 @@ export class UserStatisticsRepository {
     accessibleLibraryIds: number[] | null,
     filterLibraryIds?: number[],
     days = 365,
-  ): Promise<{ genre: string; source: ReadingSessionSource | null; readingSeconds: number }[]> {
+  ): Promise<{ genre: string; source: ReadingSessionStatsSource | null; readingSeconds: number }[]> {
     const libraryFilter = this.libraryFilter(this.intersectLibraryIds(accessibleLibraryIds, filterLibraryIds));
     const since = this.sinceDateForDays(days);
 
@@ -948,7 +949,7 @@ export class UserStatisticsRepository {
     return this.db
       .select({
         genre: genres.name,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         readingSeconds: sql<number>`coalesce(sum(${readingSessions.durationSeconds}), 0)::int`,
       })
       .from(readingSessions)
@@ -956,7 +957,7 @@ export class UserStatisticsRepository {
       .innerJoin(bookGenres, eq(bookGenres.bookId, books.id))
       .innerJoin(genres, eq(genres.id, bookGenres.genreId))
       .where(and(eq(readingSessions.userId, userId), gte(readingSessions.startedAt, since), libraryFilter))
-      .groupBy(genres.name, readingSessions.source);
+      .groupBy(genres.name, readingSessionStatsSource);
   }
 
   async getDailyReadingSecondsBySource(
@@ -964,7 +965,7 @@ export class UserStatisticsRepository {
     accessibleLibraryIds: number[] | null,
     filterLibraryIds: number[] | undefined,
     days: number,
-  ): Promise<{ day: string; source: ReadingSessionSource | null; readingSeconds: number }[]> {
+  ): Promise<{ day: string; source: ReadingSessionStatsSource | null; readingSeconds: number }[]> {
     const libraryFilter = this.libraryFilter(this.intersectLibraryIds(accessibleLibraryIds, filterLibraryIds));
     const since = this.sinceDateForDays(days);
     const dayExpr = sql<string>`date_trunc('day', ${readingSessions.startedAt})::date::text`;
@@ -972,13 +973,13 @@ export class UserStatisticsRepository {
     return this.db
       .select({
         day: dayExpr,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         readingSeconds: sql<number>`coalesce(sum(${readingSessions.durationSeconds}), 0)::int`,
       })
       .from(readingSessions)
       .innerJoin(books, eq(books.id, readingSessions.bookId))
       .where(and(eq(readingSessions.userId, userId), gte(readingSessions.startedAt, since), libraryFilter))
-      .groupBy(dayExpr, readingSessions.source);
+      .groupBy(dayExpr, readingSessionStatsSource);
   }
 
   async getReadingPacePoints(
@@ -994,7 +995,7 @@ export class UserStatisticsRepository {
       .select({
         durationSeconds: readingSessions.durationSeconds,
         progressDelta: readingSessions.progressDelta,
-        source: readingSessions.source,
+        source: readingSessionStatsSource,
         format: sql<string>`upper(coalesce(${bookFiles.format}, 'UNKNOWN'))`,
       })
       .from(readingSessions)

@@ -49,6 +49,7 @@ const BUCKET_TOKEN: Record<ReadingSessionSourceBucket, string> = {
   android: '--pill-android',
   koreader: '--pill-koreader',
   kobo: '--pill-kobo',
+  audiobookshelf: '--pill-audiobookshelf',
 }
 
 /** Gaps of a day or two are the normal rhythm of reading a book; only a real stall is a fact. */

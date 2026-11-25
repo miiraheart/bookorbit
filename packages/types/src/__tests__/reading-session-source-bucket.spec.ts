@@ -30,6 +30,10 @@ describe("toReadingSessionSourceBucket", () => {
     expect(toReadingSessionSourceBucket("kobo")).toBe("kobo");
   });
 
+  it("maps imported Audiobookshelf sessions to their own bucket", () => {
+    expect(toReadingSessionSourceBucket("audiobookshelf")).toBe("audiobookshelf");
+  });
+
   it("maps null/undefined to bookorbit", () => {
     expect(toReadingSessionSourceBucket(null)).toBe("bookorbit");
     expect(toReadingSessionSourceBucket(undefined)).toBe("bookorbit");
@@ -37,8 +41,8 @@ describe("toReadingSessionSourceBucket", () => {
 });
 
 describe("reading session source bucket constants", () => {
-  it("exposes all six display buckets", () => {
-    expect(READING_SESSION_SOURCE_BUCKETS).toEqual(["bookorbit", "ios", "watchos", "android", "koreader", "kobo"]);
+  it("exposes all seven display buckets", () => {
+    expect(READING_SESSION_SOURCE_BUCKETS).toEqual(["bookorbit", "ios", "watchos", "android", "koreader", "kobo", "audiobookshelf"]);
   });
 
   it("labels every bucket", () => {
@@ -49,10 +53,11 @@ describe("reading session source bucket constants", () => {
       android: "Android app",
       koreader: "KOReader",
       kobo: "Kobo",
+      audiobookshelf: "Audiobookshelf",
     });
   });
 
   it("builds a zero-filled record", () => {
-    expect(emptySourceBucketRecord()).toEqual({ bookorbit: 0, ios: 0, watchos: 0, android: 0, koreader: 0, kobo: 0 });
+    expect(emptySourceBucketRecord()).toEqual({ bookorbit: 0, ios: 0, watchos: 0, android: 0, koreader: 0, kobo: 0, audiobookshelf: 0 });
   });
 });

@@ -24,6 +24,7 @@ import { DB } from '../../db';
 import { bookLastReadSql } from '../../db/book-last-read';
 import * as schema from '../../db/schema';
 import { bookFiles, books, koreaderSessionTombstones, readingSessionSyncCursors, readingSessions, userReadingDailyStats } from '../../db/schema';
+import { readingSessionStatsSource } from './reading-session-stats-source';
 
 type Db = NodePgDatabase<typeof schema>;
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -573,14 +574,14 @@ export class ReadingSessionRepository {
 
       this.db
         .select({
-          source: readingSessions.source,
+          source: readingSessionStatsSource,
           totalSeconds: sql<number>`coalesce(sum(${readingSessions.durationSeconds}), 0)::int`,
           totalSessions: count(),
         })
         .from(readingSessions)
         .leftJoin(bookFiles, eq(bookFiles.id, readingSessions.bookFileId))
         .where(whereClause)
-        .groupBy(readingSessions.source),
+        .groupBy(readingSessionStatsSource),
 
       this.findLatestEndProgress(userId, bookId),
     ]);

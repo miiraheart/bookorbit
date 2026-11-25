@@ -24,7 +24,7 @@ import type {
   ActivitySessionDurationBucket,
   ActivitySessionPatternsResponse,
   ChordDiagramData,
-  ReadingSessionSource,
+  ReadingSessionStatsSource,
   ReadingSessionSourceBucket,
   UserCompletionLatencyDistribution,
   UserCompletionRaceBook,
@@ -931,7 +931,7 @@ export class UserStatisticsService implements OnModuleInit, OnModuleDestroy {
     bookId: number;
     bookTitle: string | null;
     bookFormat: string | null;
-    source: ReadingSessionSource | null;
+    source: ReadingSessionStatsSource | null;
     startedAt: Date;
     endedAt: Date;
     durationSeconds: number;

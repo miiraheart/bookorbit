@@ -479,7 +479,7 @@ export class ReadingHistoryRepository {
 
   /** How many completed reads of the period had a session from each app or device, bucketed as the charts bucket them. */
   async sources(scope: ReadingHistoryScope, period: ReadingHistoryPeriod): Promise<{ source: ReadingSessionSourceBucket; reads: number }[]> {
-    const bucket = sql`case when ${readingSessions.source} in ('ios', 'watchos', 'android', 'koreader', 'kobo') then ${readingSessions.source} else 'bookorbit' end`;
+    const bucket = sql`case when ${readingSessions.sourceDeviceKey} = 'audiobookshelf' then 'audiobookshelf' when ${readingSessions.source} in ('ios', 'watchos', 'android', 'koreader', 'kobo') then ${readingSessions.source} else 'bookorbit' end`;
     const result = await this.db.execute(sql`
       with ${this.numbered(scope.userId)}
       select ${bucket} as source, count(distinct ${readingAttempts.id})::int as reads
