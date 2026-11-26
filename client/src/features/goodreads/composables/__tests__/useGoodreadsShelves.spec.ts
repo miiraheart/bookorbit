@@ -123,9 +123,7 @@ describe('useGoodreadsShelves cards', () => {
   it('calls a row unavailable only when the server looked its copies up', async () => {
     const shelves = setup()
     const crowded = Array.from({ length: GOODREADS_CARD_CAP }, (_, index) => index + 1)
-    mockShelf.mockResolvedValueOnce(
-      page([row('full', crowded), row('hidden', [1]), row('past-cap', [GOODREADS_CARD_CAP + 1])], [card(5)]),
-    )
+    mockShelf.mockResolvedValueOnce(page([row('full', crowded), row('hidden', [1]), row('past-cap', [GOODREADS_CARD_CAP + 1])], [card(5)]))
     await shelves.loadRows(false)
     const [full, hidden, pastCap] = shelves.rows.value
 

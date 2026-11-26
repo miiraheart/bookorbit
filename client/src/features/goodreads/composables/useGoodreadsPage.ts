@@ -58,7 +58,7 @@ export function useGoodreadsPage() {
     const count = rows.value.filter((row) => selectedKeys.value.has(row.key)).length
     return count === 0 ? 'none' : count === rows.value.length ? 'all' : 'some'
   })
-  const canBulkRequest = computed(() => canRequest.value && requestableRows(selectedRows.value).length > 0)
+  const canBulkRequest = computed(() => canRequest.value && requestableRows(selectedRows.value, 'ebook').length > 0)
   const bulkCancelIds = computed(() => cancellableRequestIds(selectedRows.value))
   const emptyText = computed(() => {
     if (currentSource.value && !currentSource.value.lastSyncedAt) return gt('notSyncedSource')
@@ -171,6 +171,7 @@ export function useGoodreadsPage() {
     try {
       const summary = await requestRows(
         selectedRows.value,
+        kind,
         (row) => requestGoodreadsBook(row, language.resolveLanguage(null), kind),
         (row, created) => recordRequest(row.key, kind, created),
       )

@@ -14,7 +14,10 @@ vi.mock('@/features/auth/composables/usePermissions', () => ({
 vi.mock('@/features/library/composables/useLibraries', () => ({
   useLibraries: () => ({ libraries: ref([{ id: 1, accessLevel: 'owner' }]), refreshLibraries: vi.fn<() => Promise<void>>() }),
 }))
-vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(), fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>() }))
+vi.mock('../../api/goodreads.api', () => ({
+  fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(),
+  fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>(),
+}))
 
 import { fetchGoodreadsShelf } from '../../api/goodreads.api'
 import { useGoodreadsLibrary } from '../useGoodreadsLibrary'

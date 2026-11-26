@@ -23,21 +23,44 @@ function row(key: string, overrides: Partial<GoodreadsShelfRow> = {}): Goodreads
   }
 }
 
+function ebookRow(key: string, request: GoodreadsRequestState, bookIds: number[] = []): GoodreadsShelfRow {
+  return row(key, { bookIds, request, requests: { ebook: request } })
+}
+
 const rows = [
   row('free'),
-  row('owned', { bookIds: [9], request: { id: 1, status: 'pending' } }),
-  row('pending', { request: { id: 2, status: 'pending' } }),
-  row('done', { request: { id: 3, status: 'available' } }),
-  row('cancelled', { request: { id: 4, status: 'cancelled' } }),
+  ebookRow('owned', { id: 1, status: 'pending' }, [9]),
+  ebookRow('pending', { id: 2, status: 'pending' }),
+  ebookRow('done', { id: 3, status: 'available' }),
+  ebookRow('cancelled', { id: 4, status: 'cancelled' }),
 ]
 
 describe('goodreads bulk selection', () => {
   it('requests only books not owned whose request is not alive', () => {
-    expect(requestableRows(rows).map((entry) => entry.key)).toEqual(['free', 'cancelled'])
+    expect(requestableRows(rows, 'ebook').map((entry) => entry.key)).toEqual(['free', 'cancelled'])
+  })
+
+  it('checks the request of the kind being asked for', () => {
+    const audioOnly = row('audio', { request: { id: 5, status: 'pending' }, requests: { audiobook: { id: 5, status: 'pending' } } })
+    const newerCancelledAudio = row('mixed', {
+      request: { id: 7, status: 'cancelled' },
+      requests: { ebook: { id: 6, status: 'pending' }, audiobook: { id: 7, status: 'cancelled' } },
+    })
+    expect(requestableRows([audioOnly, newerCancelledAudio], 'ebook').map((entry) => entry.key)).toEqual(['audio'])
+    expect(requestableRows([audioOnly, newerCancelledAudio], 'audiobook').map((entry) => entry.key)).toEqual(['mixed'])
   })
 
   it('cancels only cancellable requests and never an owned book', () => {
     expect(cancellableRequestIds(rows)).toEqual([2])
+  })
+
+  it('cancels every live kind of a row', () => {
+    const both = row('both', {
+      request: { id: 12, status: 'pending' },
+      requests: { ebook: { id: 11, status: 'pending' }, audiobook: { id: 12, status: 'pending' } },
+    })
+    expect(cancellableRequestIds([both])).toEqual([11, 12])
+    expect(cancelSummary([both], 2, 0)).toEqual({ cancelled: 2, owned: 0, notCancellable: 0, failed: 0 })
   })
 
   it('requests one book at a time and counts what it skipped', async () => {
@@ -47,7 +70,7 @@ describe('goodreads bulk selection', () => {
       .mockRejectedValueOnce(new Error('refused'))
     const done = vi.fn<(entry: GoodreadsShelfRow, created: GoodreadsRequestState | null) => void>()
 
-    const summary = await requestRows(rows, request, done)
+    const summary = await requestRows(rows, 'ebook', request, done)
 
     expect(request.mock.calls.map(([entry]) => (entry as GoodreadsShelfRow).key)).toEqual(['free', 'cancelled'])
     expect(done).toHaveBeenCalledTimes(1)

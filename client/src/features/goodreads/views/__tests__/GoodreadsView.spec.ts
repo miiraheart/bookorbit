@@ -15,7 +15,10 @@ vi.mock('@/features/library/composables/useLibraries', () => ({
 vi.mock('@/features/book-requests/composables/useRequestDestinationDefault', () => ({
   useRequestLanguageDefault: () => ({ load: vi.fn<() => Promise<boolean>>(async () => true), resolveLanguage: () => null }),
 }))
-vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(), fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>() }))
+vi.mock('../../api/goodreads.api', () => ({
+  fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(),
+  fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>(),
+}))
 
 import { fetchGoodreadsOverview, fetchGoodreadsShelf } from '../../api/goodreads.api'
 import GoodreadsView from '../GoodreadsView.vue'
