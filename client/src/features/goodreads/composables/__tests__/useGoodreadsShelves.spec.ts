@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
-import type { BookCard, GoodreadsShelfPage, GoodreadsShelfRow, GoodreadsSort } from '@bookorbit/types'
+import { GOODREADS_CARD_CAP, type BookCard, type GoodreadsShelfPage, type GoodreadsShelfRow, type GoodreadsSort } from '@bookorbit/types'
 
 vi.mock('../../api/goodreads.api', () => ({
   fetchGoodreadsOverview: vi.fn(),
@@ -96,5 +96,51 @@ describe('useGoodreadsShelves cards', () => {
     await first
 
     expect([...shelves.cardsById.value.keys()]).toEqual([9])
+  })
+
+  it('drops a removed copy from its row and from the cards', async () => {
+    const shelves = setup()
+    mockShelf.mockResolvedValueOnce(page([row('a', [1, 2]), row('b', [3])], [card(1), card(2), card(3)]))
+    await shelves.loadRows(false)
+    shelves.books.value = shelves.books.value.filter((entry) => entry.id !== 2 && entry.id !== 3)
+
+    expect([...shelves.cardsById.value.keys()]).toEqual([1])
+    expect(shelves.rows.value.map((entry) => entry.bookIds)).toEqual([[1], []])
+  })
+
+  it('replaces an updated card without touching the rows', async () => {
+    const shelves = setup()
+    mockShelf.mockResolvedValueOnce(page([row('a', [1])], [card(1)]))
+    await shelves.loadRows(false)
+    const before = shelves.rows.value
+    shelves.books.value = [card(1, 'Renamed')]
+
+    expect(shelves.cardsById.value.get(1)?.title).toBe('Renamed')
+    expect(shelves.rows.value).toBe(before)
+  })
+
+  it('calls a row unavailable only when the server looked its copies up', async () => {
+    const shelves = setup()
+    const crowded = Array.from({ length: GOODREADS_CARD_CAP }, (_, index) => index + 1)
+    mockShelf.mockResolvedValueOnce(
+      page([row('full', crowded), row('hidden', [1]), row('past-cap', [GOODREADS_CARD_CAP + 1])], [card(5)]),
+    )
+    await shelves.loadRows(false)
+    const [full, hidden, pastCap] = shelves.rows.value
+
+    expect(shelves.isUnavailable(full!)).toBe(false)
+    expect(shelves.isUnavailable(hidden!)).toBe(true)
+    expect(shelves.isUnavailable(pastCap!)).toBe(false)
+  })
+
+  it('keeps the looked up copies of earlier pages on Show more', async () => {
+    const shelves = setup()
+    mockShelf.mockResolvedValueOnce(page([row('a', [1])], []))
+    await shelves.loadRows(false)
+    mockShelf.mockResolvedValueOnce(page([row('b', [2])], [card(2)]))
+    await shelves.loadRows(true)
+
+    expect(shelves.isUnavailable(shelves.rows.value[0]!)).toBe(true)
+    expect([...shelves.checkedIds.value]).toEqual([1, 2])
   })
 })

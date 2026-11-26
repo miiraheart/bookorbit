@@ -10,6 +10,9 @@ export const GOODREADS_OWN_SOURCE_ID = "me";
 /** Tab name used for a followed Listopia list, which has no shelves of its own. */
 export const GOODREADS_LIST_SHELF = "list";
 
+/** A full page of rows with many copies each stays one bounded card query. */
+export const GOODREADS_CARD_CAP = 400;
+
 export type GoodreadsSourceKind = "user" | "list";
 
 /** One followed Goodreads source: her own account, another member's public shelves, or a Listopia list. */
