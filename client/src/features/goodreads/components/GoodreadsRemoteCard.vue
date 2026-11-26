@@ -20,9 +20,10 @@ const props = defineProps<{
   showLabel?: boolean
   selectionMode?: boolean
   selected?: boolean
+  canReadAlong?: boolean
 }>()
 
-const emit = defineEmits<{ open: []; request: [kind: BookRequestMediaKind]; toggle: [] }>()
+const emit = defineEmits<{ open: []; request: [kind: BookRequestMediaKind]; readAlong: []; toggle: [] }>()
 
 const { t } = useI18n()
 function gt(key: string, params: Record<string, unknown> = {}): string {
@@ -49,6 +50,10 @@ function handleOpen() {
 
 function handleRequest(kind: BookRequestMediaKind) {
   emit('request', kind)
+}
+
+function handleReadAlong() {
+  emit('readAlong')
 }
 
 function handleToggle() {
@@ -148,7 +153,9 @@ function handleToggle() {
                   :can-request="canRequest"
                   :busy="busy"
                   :selected="selected"
+                  :can-read-along="canReadAlong"
                   @request="handleRequest"
+                  @read-along="handleReadAlong"
                   @info="handleOpen"
                   @toggle="handleToggle"
                 />
@@ -167,7 +174,9 @@ function handleToggle() {
             :can-request="canRequest"
             :busy="busy"
             :selected="selected"
+            :can-read-along="canReadAlong"
             @request="handleRequest"
+            @read-along="handleReadAlong"
             @info="handleOpen"
             @toggle="handleToggle"
           />

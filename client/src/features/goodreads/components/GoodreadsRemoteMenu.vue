@@ -2,11 +2,12 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { BookPlus, ExternalLink, Eye, Headphones, Info, ListChecks, MoreHorizontal, MoreVertical } from '@lucide/vue'
+import { BookPlus, Download, ExternalLink, Eye, Headphones, Info, ListChecks, MoreHorizontal, MoreVertical } from '@lucide/vue'
 import { BOOK_REQUEST_MEDIA_KINDS, type BookRequestMediaKind, type GoodreadsShelfRow } from '@bookorbit/types'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GOODREADS_MESSAGE_ROOT, goodreadsRequestKeys } from '../i18n'
 import { isLiveRequest } from '../lib/bulk'
+import { readAlongPlan } from '../lib/readAlongPlan'
 
 type MenuVariant = 'overlay' | 'label' | 'row'
 
@@ -16,10 +17,11 @@ const props = defineProps<{
   canRequest: boolean
   busy?: boolean
   selected?: boolean
+  canReadAlong?: boolean
   variant: MenuVariant
 }>()
 
-const emit = defineEmits<{ request: [kind: BookRequestMediaKind]; info: []; toggle: [] }>()
+const emit = defineEmits<{ request: [kind: BookRequestMediaKind]; readAlong: []; info: []; toggle: [] }>()
 
 const { t } = useI18n()
 function gt(key: string, params: Record<string, unknown> = {}): string {
@@ -34,6 +36,7 @@ const TRIGGER_CLASS: Record<MenuVariant, string> = {
 }
 
 const requestKinds = computed(() => (props.canRequest ? BOOK_REQUEST_MEDIA_KINDS.filter((kind) => !isLiveRequest(props.row.requests[kind])) : []))
+const readAlong = computed(() => (props.canReadAlong ? readAlongPlan(props.row, []).kind : 'none'))
 const viewKinds = computed(() => BOOK_REQUEST_MEDIA_KINDS.filter((kind) => props.row.requests[kind]))
 const goodreadsUrl = computed(() => (props.row.goodreadsId ? `https://www.goodreads.com/book/show/${props.row.goodreadsId}` : null))
 
@@ -68,11 +71,15 @@ function handleView(kind: BookRequestMediaKind) {
         <component :is="kind === 'ebook' ? BookPlus : Headphones" class="size-4 mr-2" aria-hidden="true" />
         {{ gt(goodreadsRequestKeys(kind).request) }}
       </DropdownMenuItem>
+      <DropdownMenuItem v-if="readAlong !== 'none'" :disabled="busy" data-testid="goodreads-menu-read-along" @click="emit('readAlong')">
+        <Download class="size-4 mr-2" aria-hidden="true" />
+        {{ gt(readAlong === 'resume' ? 'readAlongResume' : 'readAlongStart') }}
+      </DropdownMenuItem>
       <DropdownMenuItem v-for="kind in viewKinds" :key="`view-${kind}`" :data-testid="`goodreads-menu-view-${kind}`" @click="handleView(kind)">
         <Eye class="size-4 mr-2" aria-hidden="true" />
         {{ gt(goodreadsRequestKeys(kind).view) }}
       </DropdownMenuItem>
-      <DropdownMenuSeparator v-if="requestKinds.length > 0 || viewKinds.length > 0" />
+      <DropdownMenuSeparator v-if="requestKinds.length > 0 || viewKinds.length > 0 || readAlong !== 'none'" />
       <DropdownMenuItem v-if="goodreadsUrl" as-child>
         <a :href="goodreadsUrl" target="_blank" rel="noopener noreferrer" data-testid="goodreads-menu-goodreads">
           <ExternalLink class="size-4 mr-2" aria-hidden="true" />

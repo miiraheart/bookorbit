@@ -45,7 +45,7 @@ function row(overrides: Partial<GoodreadsShelfRow> = {}): GoodreadsShelfRow {
 
 const passThrough = { template: '<div><slot /></div>' }
 
-async function mountMenu(props: { row: GoodreadsShelfRow; canRequest?: boolean }) {
+async function mountMenu(props: { row: GoodreadsShelfRow; canRequest?: boolean; canReadAlong?: boolean }) {
   const router = makeRouter()
   await router.push('/')
   const wrapper = mount(GoodreadsRemoteMenu, {
@@ -108,6 +108,26 @@ describe('GoodreadsRemoteMenu', () => {
     expect(has(wrapper, 'goodreads-menu-request-ebook')).toBe(false)
     expect(has(wrapper, 'goodreads-menu-request-audiobook')).toBe(false)
     expect(has(wrapper, 'goodreads-menu-info')).toBe(true)
+  })
+
+  it('offers Download both for read-along only to someone who may fetch books directly', async () => {
+    const { wrapper } = await mountMenu({ row: row(), canReadAlong: true })
+    expect(wrapper.find('[data-testid="goodreads-menu-read-along"]').text()).toContain(t('goodreads.readAlongStart'))
+    await wrapper.find('[data-testid="goodreads-menu-read-along"]').trigger('click')
+    expect(wrapper.emitted('readAlong')).toHaveLength(1)
+
+    const { wrapper: plain } = await mountMenu({ row: row() })
+    expect(has(plain, 'goodreads-menu-read-along')).toBe(false)
+  })
+
+  it('offers Pick releases when both self-serve requests wait for a pick, and nothing once they download', async () => {
+    const waiting = { id: 30, status: 'approved' as const, selfServe: true }
+    const { wrapper } = await mountMenu({ row: row({ requests: { ebook: waiting, audiobook: { ...waiting, id: 31 } } }), canReadAlong: true })
+    expect(wrapper.find('[data-testid="goodreads-menu-read-along"]').text()).toContain(t('goodreads.readAlongResume'))
+
+    const moving = { ebook: { ...waiting, status: 'downloading' as const }, audiobook: { ...waiting, id: 31, status: 'downloading' as const } }
+    const { wrapper: busy } = await mountMenu({ row: row({ requests: moving }), canReadAlong: true })
+    expect(has(busy, 'goodreads-menu-read-along')).toBe(false)
   })
 
   it('emits the request with its media kind, and info and select', async () => {

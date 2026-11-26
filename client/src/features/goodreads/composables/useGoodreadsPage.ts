@@ -9,6 +9,7 @@ import { useRequestLanguageDefault } from '@/features/book-requests/composables/
 import { formatDate } from '@/i18n/formatters'
 import { errorMessage } from '@/lib/api-json'
 import { cancelGoodreadsRequests, requestGoodreadsBook } from '../api/goodreads.api'
+import { useCanReadAlong } from './useCanReadAlong'
 import { useGoodreadsShelves } from './useGoodreadsShelves'
 import { useGoodreadsSync } from './useGoodreadsSync'
 import { GOODREADS_MESSAGE_ROOT, goodreadsShelfLabel } from '../i18n'
@@ -35,6 +36,7 @@ export function useGoodreadsPage() {
   const selectedKeys = ref<Set<string>>(new Set())
   const bulkBusy = ref(false)
   const cancelConfirmOpen = ref(false)
+  const readAlongRow = ref<GoodreadsShelfRow | null>(null)
   const viewMode = useLocalStorage<GoodreadsViewMode>('goodreads.viewMode', 'grid')
   const router = useRouter()
 
@@ -42,6 +44,7 @@ export function useGoodreadsPage() {
   const { overview, rows, loadOverview, loadRows, patchRow } = shelvesState
 
   const canRequest = computed(() => hasPermission('book_request_access'))
+  const canReadAlong = useCanReadAlong()
   const sources = computed(() => overview.value?.sources ?? [])
   const currentSource = computed(() => sources.value.find((entry) => entry.id === source.value) ?? null)
   const shelves = computed(() => currentSource.value?.shelves ?? [])
@@ -207,6 +210,10 @@ export function useGoodreadsPage() {
     overview.value = value
   }
 
+  function openReadAlong(row: GoodreadsShelfRow | null) {
+    readAlongRow.value = row
+  }
+
   function setCancelConfirmOpen(value: boolean) {
     cancelConfirmOpen.value = value
   }
@@ -226,8 +233,10 @@ export function useGoodreadsPage() {
     selectedKeys,
     bulkBusy,
     cancelConfirmOpen,
+    readAlongRow,
     viewMode,
     canRequest,
+    canReadAlong,
     sources,
     currentSource,
     shelves,
@@ -255,6 +264,7 @@ export function useGoodreadsPage() {
     setViewMode,
     setOverview,
     setCancelConfirmOpen,
+    openReadAlong,
   })
 }
 

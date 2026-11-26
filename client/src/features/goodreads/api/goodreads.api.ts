@@ -71,6 +71,19 @@ interface CreatedRequest {
   request?: { id?: number; status?: BookRequestStatus }
 }
 
+/** The work as every request from this page describes it, filed under the Goodreads id. */
+export function goodreadsWork(item: GoodreadsShelfItem, language: string | null) {
+  return {
+    title: item.title,
+    authors: item.authors,
+    ...(item.isbn13 ? { isbn13: item.isbn13 } : {}),
+    ...(item.coverUrl ? { coverUrl: item.coverUrl } : {}),
+    ...(language ? { language } : {}),
+    providerKey: GOODREADS_PROVIDER_KEY,
+    providerId: item.goodreadsId ?? item.key,
+  }
+}
+
 /** The same route the request form uses, so dedupe, permissions and the audit trail all apply. */
 export async function requestGoodreadsBook(
   item: GoodreadsShelfItem,
@@ -79,16 +92,7 @@ export async function requestGoodreadsBook(
 ): Promise<{ id: number; status: BookRequestStatus } | null> {
   const body = await apiJson<CreatedRequest>(
     '/api/v1/book-requests',
-    jsonBody('POST', {
-      mediaKind,
-      title: item.title,
-      authors: item.authors,
-      ...(item.isbn13 ? { isbn13: item.isbn13 } : {}),
-      ...(item.coverUrl ? { coverUrl: item.coverUrl } : {}),
-      ...(language ? { language } : {}),
-      providerKey: GOODREADS_PROVIDER_KEY,
-      providerId: item.goodreadsId ?? item.key,
-    }),
+    jsonBody('POST', { mediaKind, ...goodreadsWork(item, language) }),
     'goodreads.requestFailed',
   )
   const id = body.request?.id

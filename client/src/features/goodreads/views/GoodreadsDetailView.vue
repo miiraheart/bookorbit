@@ -7,6 +7,7 @@ import GoodreadsDetailCover from '../components/detail/GoodreadsDetailCover.vue'
 import GoodreadsDetailMain from '../components/detail/GoodreadsDetailMain.vue'
 import GoodreadsDetailRail from '../components/detail/GoodreadsDetailRail.vue'
 import GoodreadsRelatedRows from '../components/detail/GoodreadsRelatedRows.vue'
+import GoodreadsReadAlongPairButton from '../components/readalong/GoodreadsReadAlongPairButton.vue'
 import { useGoodreadsBookLookup } from '../composables/useGoodreadsBookLookup'
 import { useGoodreadsItem } from '../composables/useGoodreadsItem'
 import { GOODREADS_MESSAGE_ROOT, installGoodreadsMessages } from '../i18n'
@@ -80,7 +81,11 @@ function handleReload() {
             :library-copy="libraryCopy"
             @request="item.request"
             @reload="handleReload"
-          />
+          >
+            <template #read-along-pair="{ row: slotRow, reload }">
+              <GoodreadsReadAlongPairButton :row="slotRow" :cards="cards" @changed="reload" />
+            </template>
+          </GoodreadsDetailCover>
           <GoodreadsDetailMain :row="row" :candidate="candidate" :looking-up="busy" :cards="cards" :series-label="series?.label ?? null" />
           <GoodreadsDetailRail :row="row" :candidate="candidate" :owned="owned" />
         </div>

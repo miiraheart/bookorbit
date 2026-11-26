@@ -10,6 +10,7 @@ import GoodreadsBookDialogs from '../components/GoodreadsBookDialogs.vue'
 import GoodreadsGrid from '../components/GoodreadsGrid.vue'
 import GoodreadsList from '../components/GoodreadsList.vue'
 import GoodreadsToolbar from '../components/GoodreadsToolbar.vue'
+import ReadAlongPairPanel from '../components/readalong/ReadAlongPairPanel.vue'
 import { useGoodreadsLibrary } from '../composables/useGoodreadsLibrary'
 import { useGoodreadsPage } from '../composables/useGoodreadsPage'
 import { installGoodreadsMessages } from '../i18n'
@@ -26,6 +27,14 @@ const library = useGoodreadsLibrary({
   reload: () => void page.loadRows(false),
 })
 provide(COVER_ASPECT_RATIO_KEY, ref<CoverAspectRatio>('2/3'))
+
+function handleReadAlongOpen(open: boolean) {
+  if (!open) page.openReadAlong(null)
+}
+
+function handleReadAlongChanged() {
+  void page.loadRows(false)
+}
 
 function handleCancelConfirmClose() {
   page.setCancelConfirmOpen(false)
@@ -70,5 +79,12 @@ function handleCancelConfirmClose() {
       @cancel="handleCancelConfirmClose"
     />
     <GoodreadsBookDialogs :library="library" />
+    <ReadAlongPairPanel
+      :open="page.readAlongRow !== null"
+      :row="page.readAlongRow"
+      :cards="page.readAlongRow ? library.cardsOf(page.readAlongRow) : []"
+      @update:open="handleReadAlongOpen"
+      @changed="handleReadAlongChanged"
+    />
   </div>
 </template>
