@@ -80,3 +80,35 @@ export type PairEbookRequest = {
   dismissPrevious?: boolean;
   language?: string;
 };
+
+export type ReadAlongCandidatesResponse = {
+  pair: ReadAlongPair | null;
+  pairState: "ok" | "needs_attention" | null;
+  candidates: ReadAlongCandidate[];
+  /** Ebook records dismissed for this audiobook. Their candidates are listed only when asked for. */
+  dismissedEbookBookIds: number[];
+  dismissed: ReadAlongCandidate[];
+};
+
+export type PairEbookResponse = {
+  pair: ReadAlongPair;
+  /** A read-along in the audiobook record was made from another ebook than the one now paired. */
+  readAlongStale: boolean;
+};
+
+export type ReadAlongFromPair = { fileId: number; filename: string };
+
+export type UnpairEbookResponse = {
+  removed: ReadAlongPair | null;
+  /** Read-alongs in the audiobook record made from the unpaired EPUB. Nothing is deleted here. */
+  readAlongs: ReadAlongFromPair[];
+  canDeleteReadAlong: boolean;
+};
+
+export type DismissCandidateRequest = { ebookBookId: number };
+
+export type ReadAlongDismissalsResponse = { dismissedEbookBookIds: number[] };
+
+export type AcceptExactRequest = { libraryId?: number };
+
+export type AcceptExactResponse = { paired: number; skipped: number };

@@ -112,6 +112,7 @@ import { SearchModule } from './modules/search/search.module';
 import { WatchDownloadModule } from './modules/watch-download/watch-download.module';
 import { AppAttestModule } from './modules/app-attest/app-attest.module';
 import { ReadAloudModule } from './modules/read-aloud/read-aloud.module';
+import { ReadAloudPairsModule } from './modules/read-aloud-pairs/read-aloud-pairs.module';
 import { PageLocatorModule } from './modules/page-locator/page-locator.module';
 import { YearReviewModule } from './modules/year-review/year-review.module';
 import { VisualMatchModule } from './modules/visual-match/visual-match.module';
@@ -243,6 +244,7 @@ import { BulkRunsModule } from './modules/bulk-runs/bulk-runs.module';
     WatchDownloadModule,
     AppAttestModule,
     ReadAloudModule,
+    ReadAloudPairsModule,
     PageLocatorModule,
     YearReviewModule,
     VisualMatchModule,
