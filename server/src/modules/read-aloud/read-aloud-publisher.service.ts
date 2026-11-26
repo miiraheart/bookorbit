@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { ReadAloudNarrationCoverage, ReadAloudReportSummary, ReadAloudWarningCode } from '@bookorbit/types';
 
@@ -11,6 +11,7 @@ import { GENERATED_FILENAME_MAX_BYTES, GeneratedBookFileService, truncateUtf8 } 
 import { ReadAloudActivityService } from './read-aloud-activity.service';
 import { ReadAloudJobError } from './read-aloud-errors';
 import { ReadAloudJobRepository, type ReadAloudJobPayload } from './read-aloud-job.repository';
+import { ReadAloudPairedEpub } from './read-aloud-paired-epub';
 import { canReplaceReadAlong } from './read-aloud-presenter.service';
 import { assessCoverage, parseAlignmentReport, reportWarnings } from './read-aloud-report';
 import { ReadAloudWorkspace } from './read-aloud-workspace.service';
@@ -35,6 +36,7 @@ export class ReadAloudPublisher {
     private readonly files: GeneratedBookFileService,
     private readonly activity: ReadAloudActivityService,
     private readonly fileWrite: FileWriteService,
+    @Optional() private readonly pairedEpub?: ReadAloudPairedEpub,
   ) {}
 
   /** Checks the worker's output on the server side before anything reaches the library. */
@@ -55,8 +57,10 @@ export class ReadAloudPublisher {
     const parsed = parseAlignmentReport(raw);
     const { coverage, chapters } = assessCoverage(parsed.totals, parsed.chapters);
     const { warnings, requiresReview } = reportWarnings(parsed.totals, coverage, parsed.tracks);
+    // Text from an ebook the audiobook is no longer paired with waits for someone to choose it.
+    const pairChanged = (await this.pairedEpub?.pairChanged(row)) ?? false;
     await this.jobs.saveReportChapters(row.id, chapters);
-    return { report: parsed.totals, coverage, warnings, requiresReview, outputBytes: output.size };
+    return { report: parsed.totals, coverage, warnings, requiresReview: requiresReview || pairChanged, outputBytes: output.size };
   }
 
   /** Keeps the job's lease alive while `fn` runs; validating and copying a large audiobook takes minutes. */
@@ -139,7 +143,7 @@ export class ReadAloudPublisher {
 
   private async outputFilename(row: ReadAloudJobRow): Promise<string> {
     const input = row.input as ReadAloudJobPayload;
-    const [source] = await this.jobs.findSourceFiles(row.bookId, [input.epubFileId]);
+    const [source] = await this.jobs.findSourceFiles(input.epubBookId ?? row.bookId, [input.epubFileId]);
     const stem = (source?.filename ?? 'book.epub').replace(/\.epub$/i, '').replace(/\.readaloud(?:-[a-z0-9]+)?$/i, '');
     // Shorten the book's part, not the suffix, so a long name still ends in `.readaloud.epub`.
     const fitted = truncateUtf8(stem, GENERATED_FILENAME_MAX_BYTES - Buffer.byteLength(READ_ALONG_SUFFIX)).trimEnd() || 'book';

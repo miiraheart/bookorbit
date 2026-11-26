@@ -8,6 +8,11 @@ export class CreateReadAloudJobDto implements CreateReadAloudJobRequest {
   epubFileId?: number;
 
   @IsOptional()
+  @IsInt()
+  @IsPositive()
+  epubBookId?: number;
+
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(READ_ALOUD_MAX_AUDIO_FILES)

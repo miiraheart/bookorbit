@@ -25,9 +25,11 @@ export class ReadAloudPresenter {
   async present(row: ReadAloudJobRow, viewer: ReadAloudViewer): Promise<ReadAloudJob> {
     const input = row.input as ReadAloudJobPayload;
     const inLine = row.status === 'queued' && !row.cancelRequested && row.pausedAt == null;
-    const [positions, requesterName] = await Promise.all([
+    const paired = input.epubBookId != null;
+    const [positions, requesterName, epubBookTitle] = await Promise.all([
       inLine ? this.jobs.queuePositions([row.id]) : Promise.resolve(null),
       this.jobs.findRequesterName(row.requestedByUserId),
+      paired ? this.jobs.findBookTitle(input.epubBookId!) : Promise.resolve(null),
     ]);
     const queuePosition = positions?.get(row.id) ?? null;
     const stageDetail =
@@ -45,12 +47,14 @@ export class ReadAloudPresenter {
       pausedAt: row.status === 'queued' ? (row.pausedAt?.toISOString() ?? null) : null,
       input: {
         epubFileId: input.epubFileId,
+        ...(paired ? { epubBookId: input.epubBookId } : {}),
         audioFileIds: input.audioFileIds,
         language: input.language,
         granularity: input.granularity,
         sourceBytes: input.sourceBytes,
         replaceFileId: row.replaceFileId,
       },
+      ...(paired ? { epubBookTitle } : {}),
       decisions: row.decisions,
       outputFileId: row.outputFileId,
       report: row.report,

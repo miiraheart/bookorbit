@@ -6,6 +6,7 @@ import { FileWriteModule } from '../file-write/file-write.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { LibraryModule } from '../library/library.module';
 import { NotificationModule } from '../notification/notification.module';
+import { ReadAloudPairsDataModule } from '../read-aloud-pairs/read-aloud-pairs-data.module';
 import { UploadModule } from '../upload/upload.module';
 import { UserModule } from '../user/user.module';
 import { ReadAlongJobSource } from './read-along-job-source';
@@ -14,6 +15,7 @@ import { ReadAloudEventRepository } from './read-aloud-event.repository';
 import { ReadAloudJobRepository } from './read-aloud-job.repository';
 import { ReadAloudLifecycleService } from './read-aloud-lifecycle.service';
 import { ReadAloudNotifier } from './read-aloud-notifier.service';
+import { ReadAloudPairedEpub } from './read-aloud-paired-epub';
 import { ReadAloudPresenter } from './read-aloud-presenter.service';
 import { ReadAloudPublisher } from './read-aloud-publisher.service';
 import { ReadAloudController } from './read-aloud.controller';
@@ -24,7 +26,17 @@ import { ReadAloudWorkerService } from './read-aloud-worker.service';
 import { ReadAloudWorkspace } from './read-aloud-workspace.service';
 
 @Module({
-  imports: [AuthModule, BookModule, FileWriteModule, JobsModule, LibraryModule, NotificationModule, UploadModule, UserModule],
+  imports: [
+    AuthModule,
+    BookModule,
+    FileWriteModule,
+    JobsModule,
+    LibraryModule,
+    NotificationModule,
+    ReadAloudPairsDataModule,
+    UploadModule,
+    UserModule,
+  ],
   controllers: [ReadAloudController],
   providers: [
     ReadAloudActivityService,
@@ -33,6 +45,7 @@ import { ReadAloudWorkspace } from './read-aloud-workspace.service';
     ReadAloudJobRepository,
     ReadAloudLifecycleService,
     ReadAloudNotifier,
+    ReadAloudPairedEpub,
     ReadAloudPresenter,
     ReadAloudPublisher,
     ReadAloudService,

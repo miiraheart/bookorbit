@@ -111,6 +111,11 @@ export type ReadAloudCandidateFile = {
   format: string;
   sizeBytes: number | null;
   durationSeconds: number | null;
+  /** Set on the paired ebook's EPUB, which lives in another record. */
+  bookId?: number;
+  libraryName?: string | null;
+  /** The language stored with the pair, for a book that states none. */
+  language?: string | null;
 };
 
 /** A media-overlay EPUB already on the book. `generatedByJobId` is set when a BookOrbit job produced it. */
@@ -220,6 +225,8 @@ export type ReadAloudJob = {
   /** When a queued job was paused: it stays queued but the worker skips it until resumed. */
   pausedAt: string | null;
   input: ReadAloudJobInput;
+  /** Title of the paired ebook the text came from; absent when the job reads the book's own EPUB. */
+  epubBookTitle?: string | null;
   decisions: ReadAloudDecisions;
   outputFileId: number | null;
   report: ReadAloudReportSummary | null;
@@ -282,11 +289,28 @@ export const DEFAULT_READ_ALOUD_PREFERENCES: ReadAloudPreferences = { defaultLan
 
 export type CreateReadAloudJobRequest = {
   epubFileId?: number;
+  /** The paired ebook's record, when `epubFileId` is its EPUB. */
+  epubBookId?: number;
   audioFileIds?: number[];
   language?: string;
   granularity?: ReadAloudGranularity;
   replaceFileId?: number;
 };
+
+export type PublishReadAloudJobRequest = {
+  /** Publish although the audiobook was paired with another ebook after the job was made. */
+  force?: boolean;
+};
+
+/** The `errorCode` of a refused publish whose job read an ebook the audiobook is no longer paired with. */
+export const READ_ALOUD_PAIR_CHANGED_ERROR = "pair_changed";
+
+/** A read-along holds the source EPUB and audio plus its overlay markup. */
+export const READ_ALOUD_OUTPUT_ESTIMATE_FACTOR = 1.08;
+
+export function estimateReadAloudOutputBytes(sourceBytes: number): number | null {
+  return sourceBytes > 0 ? Math.ceil(sourceBytes * READ_ALOUD_OUTPUT_ESTIMATE_FACTOR) : null;
+}
 
 export type ResyncReadAloudJobRequest = {
   decisions: ReadAloudDecisions;

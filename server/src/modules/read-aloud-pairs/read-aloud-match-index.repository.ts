@@ -49,7 +49,10 @@ export type ReadAlongOutputFile = {
   epubHash: string | null;
 };
 
-export function madeFromPair(file: ReadAlongOutputFile, pair: { ebookFileId: number; fileHash: string | null }): boolean {
+export function madeFromPair(
+  file: Pick<ReadAlongOutputFile, 'epubFileId' | 'epubHash'>,
+  pair: { ebookFileId: number; fileHash: string | null },
+): boolean {
   return file.epubFileId === pair.ebookFileId || (pair.fileHash !== null && file.epubHash === pair.fileHash);
 }
 

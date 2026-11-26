@@ -29,7 +29,7 @@ import {
   stageLabelKey,
   stepIndexOf,
 } from '../lib/read-aloud'
-import type { ReadAloudAction } from '../composables/useReadAloud'
+import { READ_ALOUD_PAIR_CHANGED_KEY, type ReadAloudAction } from '../composables/useReadAloud'
 import { useReadAloudEvents } from '../composables/useReadAloudEvents'
 import ReadAloudActivityLog from './ReadAloudActivityLog.vue'
 import ReadAloudInlineConfirm from './ReadAloudInlineConfirm.vue'
@@ -51,7 +51,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   cancel: []
-  publish: []
+  publish: [force?: boolean]
   retry: []
   resume: []
   resync: [decisions: ReadAloudDecisions]
@@ -101,6 +101,10 @@ const startedBy = computed(() => {
     ? t('book.detail.files.readAloud.job.startedBy', { name: requester.name })
     : t('book.detail.files.readAloud.job.startedByUnknown')
 })
+
+const sourceLine = computed(() =>
+  props.job.epubBookTitle ? t('book.detail.files.readAloud.job.textFrom', { title: props.job.epubBookTitle }) : null,
+)
 
 const title = computed(() => {
   if (stopping.value) return t('book.detail.files.readAloud.job.stoppingTitle')
@@ -295,8 +299,10 @@ function handleDiscard(): void {
   emit('cancel')
 }
 
+/** After a refusal because the pair changed, publishing again is the person's choice to go ahead. */
 function handlePublish(): void {
-  emit('publish')
+  if (props.errorKey === READ_ALOUD_PAIR_CHANGED_KEY) emit('publish', true)
+  else emit('publish')
 }
 
 function handleResync(decisions: ReadAloudDecisions): void {
@@ -378,6 +384,9 @@ function handleReloadEvents(): void {
               <span v-if="index > 0" aria-hidden="true">·</span>
               <span>{{ part }}</span>
             </template>
+          </p>
+          <p v-if="sourceLine" class="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground" data-test="read-aloud-source">
+            {{ sourceLine }}
           </p>
           <p
             v-if="coverageParts.length > 0"

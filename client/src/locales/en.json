@@ -8456,6 +8456,7 @@
             "sources": "Sources",
             "ebook": "Ebook",
             "ebookHint": "Pick the plain EPUB that matches the narration.",
+            "fromLibrary": "from {library}",
             "existing": {
               "title": "{count, plural, one {This book already has a read-aloud} other {This book already has # read-alouds}}",
               "replace": "Replace {filename}",
@@ -8512,6 +8513,7 @@
             "heading": "Read-aloud",
             "startedBy": "Started by {name}",
             "startedByUnknown": "Started by another user",
+            "textFrom": "Text from {title}",
             "dismiss": "Dismiss",
             "details": "Details",
             "queuedTitle": "Waiting to start",
@@ -8700,6 +8702,7 @@
             "resume": "The job couldn't be resumed. Try again.",
             "resync": "The re-sync couldn't be started. Try again.",
             "dismiss": "The card couldn't be dismissed. Try again.",
+            "pairChanged": "This audiobook was paired with another ebook after this read-along was made. Choose Publish anyway to add it, or discard it.",
             "job": {
               "worker_unavailable": "The read-aloud worker couldn't be reached.",
               "worker_incompatible": "The read-aloud worker needs an update to work with this server.",

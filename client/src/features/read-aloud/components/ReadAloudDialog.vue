@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { AudioLines, ChevronDown, Cpu, Loader2, TriangleAlert, X } from '@lucide/vue'
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
 import {
+  estimateReadAloudOutputBytes,
   estimateReadAloudWorkBytes,
   languageSubtagOf,
   Permission,
@@ -29,6 +30,8 @@ const props = defineProps<{
   defaultLanguage: string | null
   /** A previous job's input, for "Start over"; null starts from the book's defaults. */
   initial: ReadAloudJobInput | null
+  /** An EPUB to preselect when not starting over, such as the paired ebook's. */
+  preferredEpubFileId?: number | null
   busy: boolean
   /** A translation key for the last failed start, owned by the dialog's caller. */
   error: string | null
@@ -88,6 +91,7 @@ const existingReadAlongs = computed(() => props.capability.existingReadAlongs)
 const modelName = computed(() => MODEL_NAMES[props.capability.model as string] ?? props.capability.model)
 const showEpubChoice = computed(() => props.capability.epubFiles.length > 1)
 const singleEpub = computed(() => (props.capability.epubFiles.length === 1 ? props.capability.epubFiles[0]! : null))
+const selectedEpub = computed(() => props.capability.epubFiles.find((file) => file.id === epubFileId.value) ?? null)
 
 const languageOptions = computed(() =>
   props.capability.supportedLanguages
@@ -119,11 +123,13 @@ const canSetDefaultLanguage = computed(
 )
 
 const deviceLine = computed(() => deviceLabel(props.capability.workerDevice, t))
-const estimatedSize = computed(() =>
-  props.capability.estimatedOutputBytes != null
-    ? t('book.detail.files.readAloud.dialog.estimatedSize', { size: formatBytes(props.capability.estimatedOutputBytes) })
-    : null,
-)
+/** From the selected EPUB and tracks, since the server can only guess which ones will be chosen. */
+const estimatedSize = computed(() => {
+  const included = new Set(includedTrackIds.value)
+  const audioBytes = props.capability.audioFiles.reduce((total, file) => total + (included.has(file.id) ? (file.sizeBytes ?? 0) : 0), 0)
+  const bytes = estimateReadAloudOutputBytes((selectedEpub.value?.sizeBytes ?? 0) + audioBytes)
+  return bytes != null ? t('book.detail.files.readAloud.dialog.estimatedSize', { size: formatBytes(bytes) }) : null
+})
 
 /** Working space the worker needs for this selection; a shortfall is worth saying before hours of work. */
 const lowDiskWarning = computed(() => {
@@ -142,13 +148,18 @@ const lowDiskWarning = computed(() => {
 
 const canSubmit = computed(() => epubFileId.value !== null && includedTrackIds.value.length > 0 && language.value.length > 0 && !props.busy)
 
+/** Where a paired ebook's EPUB comes from; the book's own EPUBs need no label. */
+function epubOrigin(file: ReadAloudCapability['epubFiles'][number]): string | null {
+  return file.bookId != null && file.libraryName ? t('book.detail.files.readAloud.dialog.fromLibrary', { library: file.libraryName }) : null
+}
+
 function isSupportedLanguage(code: string): boolean {
   return (props.capability.supportedLanguages as readonly string[]).includes(code)
 }
 
 /** A previous job's language, then the book's, then the user's saved default: the first the model supports. */
 function preferredLanguage(): string {
-  const candidates = props.initial ? [languageSubtagOf(props.initial.language)] : [bookLanguage.value]
+  const candidates = props.initial ? [languageSubtagOf(props.initial.language)] : [bookLanguage.value, languageSubtagOf(selectedEpub.value?.language)]
   candidates.push(preferences.defaultLanguage.value)
   return candidates.find((code): code is string => !!code && isSupportedLanguage(code)) ?? ''
 }
@@ -164,7 +175,8 @@ function initialise(): void {
   const capability = props.capability
   const initial = props.initial
   const epubIds = capability.epubFiles.map((file) => file.id)
-  epubFileId.value = initial && epubIds.includes(initial.epubFileId) ? initial.epubFileId : (epubIds[0] ?? null)
+  const wanted = initial?.epubFileId ?? props.preferredEpubFileId
+  epubFileId.value = wanted != null && epubIds.includes(wanted) ? wanted : (epubIds[0] ?? null)
 
   const available = bookOrder.value
   if (initial) {
@@ -297,6 +309,7 @@ function handleSubmit(): void {
     language: language.value,
     granularity: granularity.value,
   }
+  if (selectedEpub.value?.bookId != null) input.epubBookId = selectedEpub.value.bookId
   if (canReplace.value && existingChoice.value !== 'keep') input.replaceFileId = existingChoice.value
   emit('create', input)
 }
@@ -362,7 +375,10 @@ function handleSubmit(): void {
                         :value="file.id"
                         class="size-4 shrink-0 accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
-                      <span class="min-w-0 flex-1 truncate text-sm text-foreground" :title="file.filename">{{ file.filename }}</span>
+                      <span class="min-w-0 flex-1">
+                        <span class="block truncate text-sm text-foreground" :title="file.filename">{{ file.filename }}</span>
+                        <span v-if="epubOrigin(file)" class="block truncate text-xs text-muted-foreground">{{ epubOrigin(file) }}</span>
+                      </span>
                       <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ formatBytes(file.sizeBytes) }}</span>
                     </label>
                   </div>
@@ -370,6 +386,9 @@ function handleSubmit(): void {
                 <p v-else-if="singleEpub" class="flex min-w-0 items-baseline gap-2 text-sm text-foreground">
                   <span class="min-w-0 truncate" :title="singleEpub.filename">{{ singleEpub.filename }}</span>
                   <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ formatBytes(singleEpub.sizeBytes) }}</span>
+                </p>
+                <p v-if="!showEpubChoice && singleEpub && epubOrigin(singleEpub)" class="text-xs text-muted-foreground sm:col-start-2">
+                  {{ epubOrigin(singleEpub) }}
                 </p>
               </div>
 

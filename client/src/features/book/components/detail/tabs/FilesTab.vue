@@ -279,8 +279,8 @@ function cancelReadAloud() {
   void readAloud.cancel()
 }
 
-function publishReadAloud() {
-  void readAloud.publish()
+function publishReadAloud(force?: boolean) {
+  void readAloud.publish(force)
 }
 
 function retryReadAloud() {

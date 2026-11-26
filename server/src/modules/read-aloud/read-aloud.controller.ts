@@ -6,6 +6,7 @@ import { ForbidPermission } from '../../common/decorators/forbid-permission.deco
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import type { RequestUser } from '../../common/types/request-user';
 import { CreateReadAloudJobDto } from './dto/create-read-aloud-job.dto';
+import { PublishReadAloudJobDto } from './dto/publish-read-aloud-job.dto';
 import { ResyncReadAloudJobDto } from './dto/resync-read-aloud-job.dto';
 import { ReadAloudService } from './read-aloud.service';
 
@@ -40,8 +41,8 @@ export class ReadAloudController {
 
   @Post('read-aloud-jobs/:jobId/publish')
   @HttpCode(HttpStatus.OK)
-  publish(@Param('jobId', JOB_ID) jobId: string, @CurrentUser() user: RequestUser) {
-    return this.readAloud.publish(jobId, user);
+  publish(@Param('jobId', JOB_ID) jobId: string, @Body() dto: PublishReadAloudJobDto, @CurrentUser() user: RequestUser) {
+    return this.readAloud.publish(jobId, user, dto?.force === true);
   }
 
   @Post('read-aloud-jobs/:jobId/retry')

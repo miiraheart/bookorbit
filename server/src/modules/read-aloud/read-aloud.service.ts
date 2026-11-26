@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { realpath } from 'node:fs/promises';
@@ -19,6 +20,7 @@ import type {
   ReadAloudWorkerRequest,
 } from '@bookorbit/types';
 import {
+  estimateReadAloudOutputBytes,
   isAudioFormat,
   isContentBookFile,
   languageSubtagOf,
@@ -40,6 +42,7 @@ import { ReadAloudActivityService } from './read-aloud-activity.service';
 import { errorMessage, publicationErrorCode, ReadAloudJobError } from './read-aloud-errors';
 import { ReadAloudJobRepository, type ReadAloudJobPayload } from './read-aloud-job.repository';
 import { ReadAloudNotifier } from './read-aloud-notifier.service';
+import { findJobSourceFiles, pairedEpubCandidate, ReadAloudPairedEpub } from './read-aloud-paired-epub';
 import { canManageReadAloudJob, canReplaceReadAlong, ReadAloudPresenter, type ReadAloudViewer } from './read-aloud-presenter.service';
 import { ReadAloudPublisher } from './read-aloud-publisher.service';
 import { assessCoverage, parseAlignmentReport } from './read-aloud-report';
@@ -54,7 +57,6 @@ export function managesReadAlong(user: { isSuperuser: boolean; permissions: read
   return user.isSuperuser || user.permissions.includes(Permission.ManageAppSettings);
 }
 const ACTIVE_STATUSES = new Set<string>(READ_ALOUD_ACTIVE_JOB_STATUSES);
-const OUTPUT_ESTIMATE_FACTOR = 1.08;
 
 export type ReadAloudProcessingContext = {
   user: RequestUser;
@@ -85,21 +87,28 @@ export class ReadAloudService {
     private readonly notifier: ReadAloudNotifier,
     private readonly publisher: ReadAloudPublisher,
     private readonly workspace: ReadAloudWorkspace,
+    @Optional() private readonly pairedEpub?: ReadAloudPairedEpub,
   ) {}
 
   async capability(bookId: number, user: RequestUser): Promise<ReadAloudCapability> {
     const book = await this.books.getDetail(bookId, user);
-    const [library, placement, readAlongs, health] = await Promise.all([
+    const [library, placement, readAlongs, health, paired] = await Promise.all([
       this.libraries.findOne(book.libraryId),
       this.jobs.findBookPlacement(bookId),
       this.jobs.findReadAlongFiles(bookId),
       this.worker.lastKnownHealthState(),
+      this.pairedEpub?.resolve(bookId, user) ?? null,
     ]);
-    const epubFiles = this.epubCandidates(book).map((file) => this.candidate(file, 'epub'));
+    const ownEpubs = this.epubCandidates(book).map((file) => this.candidate(file, 'epub'));
+    const epubFiles = paired ? [...ownEpubs, pairedEpubCandidate(paired)] : ownEpubs;
     const audioFiles = this.audioCandidates(book).map((file) => this.candidate(file, file.format!.toLowerCase()));
     const active = await this.jobs.findActiveForBook(bookId);
     const latest = active ?? (await this.jobs.findLatestFinishedForViewer(bookId, user));
-    const mounted = health.state === 'ok' && placement ? await this.isMounted(placement.folderPath, health.health.libraryRoots) : false;
+    const mounted =
+      health.state === 'ok' && placement
+        ? (await this.isMounted(placement.folderPath, health.health.libraryRoots)) &&
+          (ownEpubs.length > 0 || !paired || (await this.isMounted(paired.folderPath, health.health.libraryRoots)))
+        : false;
     const reason = this.eligibility({
       health,
       mounted,
@@ -129,7 +138,7 @@ export class ReadAloudService {
         sizeBytes: file.sizeBytes,
         generatedByJobId: file.generatedByJobId,
       })),
-      estimatedOutputBytes: sourceBytes > 0 ? Math.ceil(sourceBytes * OUTPUT_ESTIMATE_FACTOR) : null,
+      estimatedOutputBytes: estimateReadAloudOutputBytes(sourceBytes),
       latestJob: latest ? await this.presenter.present(latest, user) : null,
     };
   }
@@ -154,15 +163,23 @@ export class ReadAloudService {
 
     const epubCandidates = this.epubCandidates(book);
     const audioCandidates = this.audioCandidates(book);
-    const epubFileId = dto.epubFileId ?? (epubCandidates.length === 1 ? epubCandidates[0]!.id : undefined);
+    const paired = (await this.pairedEpub?.resolve(bookId, user)) ?? null;
+    const epubFileId = dto.epubFileId ?? (epubCandidates.length === 1 && !paired ? epubCandidates[0]!.id : undefined);
+    const fromPair = paired && paired.file.id === epubFileId ? paired : null;
     const audioFileIds = dto.audioFileIds ?? audioCandidates.map((file) => file.id);
     if (epubFileId === undefined) throw new BadRequestException('Select an EPUB source');
+    if (dto.epubBookId !== undefined && dto.epubBookId !== (fromPair?.pair.ebookBookId ?? bookId)) {
+      throw new BadRequestException('The selected EPUB is not the ebook paired with this audiobook');
+    }
     if (audioFileIds.length === 0) throw new BadRequestException('Select at least one audiobook file');
     if (audioFileIds.length > READ_ALOUD_MAX_AUDIO_FILES) {
       throw new BadRequestException(`A read-along can be made from at most ${READ_ALOUD_MAX_AUDIO_FILES} audio files`);
     }
     if (new Set(audioFileIds).size !== audioFileIds.length) throw new BadRequestException('Audiobook file selection contains duplicates');
-    if (!epubCandidates.some((file) => file.id === epubFileId)) throw new BadRequestException('Selected EPUB is not an eligible source');
+    if (!fromPair && !epubCandidates.some((file) => file.id === epubFileId)) throw new BadRequestException('Selected EPUB is not an eligible source');
+    if (fromPair && !(await this.isMounted(fromPair.folderPath, health.health.libraryRoots))) {
+      throw new BadRequestException("The paired ebook's library is not mounted in the read-aloud worker");
+    }
     if (audioFileIds.some((id) => !audioCandidates.some((file) => file.id === id))) {
       throw new BadRequestException('Selected audiobook contains an ineligible file');
     }
@@ -175,16 +192,20 @@ export class ReadAloudService {
       replaceFileId = dto.replaceFileId;
     }
 
-    const locale = this.parseLocale(dto.language ?? languageSubtagOf(book.language, READ_ALOUD_QUARTZNET_LANGUAGES) ?? 'en');
+    const locale = this.parseLocale(
+      dto.language ?? languageSubtagOf(book.language, READ_ALOUD_QUARTZNET_LANGUAGES) ?? fromPair?.pair.language ?? 'en',
+    );
     if (!QUARTZNET_LANGUAGES.has(locale.language)) {
       throw new BadRequestException(`QuartzNet15x5 does not support language "${locale.language}"`);
     }
     const selectedIds = [epubFileId, ...audioFileIds];
-    const sourceRows = await this.jobs.findSourceFiles(bookId, selectedIds);
+    const epubBookId = fromPair?.pair.ebookBookId ?? null;
+    const sourceRows = await findJobSourceFiles(this.jobs, bookId, { epubFileId, epubBookId, audioFileIds });
     if (sourceRows.length !== selectedIds.length) throw new BadRequestException('One or more selected files no longer exist');
     const byId = new Map(sourceRows.map((file) => [file.id, file]));
     const input: ReadAloudJobPayload = {
       epubFileId,
+      ...(epubBookId !== null ? { epubBookId } : {}),
       audioFileIds,
       language: locale.toString(),
       granularity: dto.granularity ?? 'sentence',
@@ -241,8 +262,9 @@ export class ReadAloudService {
   }
 
   /** Starts publishing in the background: copying a large audiobook can outlast an HTTP request. */
-  async publish(jobId: string, user: RequestUser): Promise<ReadAloudJob> {
-    await this.findManageable(jobId, user);
+  async publish(jobId: string, user: RequestUser, force = false): Promise<ReadAloudJob> {
+    const current = await this.findManageable(jobId, user);
+    await this.pairedEpub?.assertPublishable(current, force);
     const row = await this.jobs.claimForPublishing(jobId);
     if (!row) throw new ConflictException('This read-aloud job is not awaiting review');
     await this.activity.record(jobId, 'info', 'publishing', 'publish_requested');
@@ -385,9 +407,10 @@ export class ReadAloudService {
       }
       throw error;
     });
+    await this.pairedEpub?.assertRunnable(row, user);
     const input = row.input as ReadAloudJobPayload;
     const ids = [input.epubFileId, ...input.audioFileIds];
-    const files = await this.jobs.findSourceFiles(row.bookId, ids);
+    const files = await findJobSourceFiles(this.jobs, row.bookId, input);
     const byId = new Map(files.map((file) => [file.id, file]));
     for (const id of ids) {
       const file = byId.get(id);

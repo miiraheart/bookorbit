@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, shallowRef, watch, type Ref } from 'vue'
 import type { Socket } from 'socket.io-client'
 import {
   READ_ALOUD_JOB_UPDATED_EVENT,
+  READ_ALOUD_PAIR_CHANGED_ERROR,
   READ_ALOUD_SOCKET_NAMESPACE,
   type CreateReadAloudJobRequest,
   type ReadAloudCapability,
@@ -36,10 +37,21 @@ export type UseReadAloudOptions = {
 
 const ERRORS = 'book.detail.files.readAloud.errors'
 
+/** A refused publish of text from an ebook the audiobook is no longer paired with; publishing again with `force` goes ahead. */
+export const READ_ALOUD_PAIR_CHANGED_KEY = `${ERRORS}.pairChanged`
+
 class HttpStatusError extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    readonly errorCode: string | null = null,
+  ) {
     super(`HTTP ${status}`)
   }
+}
+
+async function errorCodeOf(response: Response): Promise<string | null> {
+  const body = (await response.json().catch(() => null)) as { errorCode?: unknown } | null
+  return typeof body?.errorCode === 'string' ? body.errorCode : null
 }
 
 function statusOf(error: unknown): number | null {
@@ -50,6 +62,7 @@ function mutationErrorKey(action: Exclude<ReadAloudAction, 'create'>, error: unk
   const status = statusOf(error)
   if (status === 403) return `${ERRORS}.forbidden`
   if (status === 404) return `${ERRORS}.gone`
+  if (status === 409 && error instanceof HttpStatusError && error.errorCode === READ_ALOUD_PAIR_CHANGED_ERROR) return READ_ALOUD_PAIR_CHANGED_KEY
   if (status === 409) return `${ERRORS}.conflict`
   return `${ERRORS}.${action}`
 }
@@ -265,7 +278,7 @@ export function useReadAloud(options: UseReadAloudOptions) {
     try {
       const response = await api(`/api/v1/read-aloud-jobs/${encodeURIComponent(current.id)}${path}`, init)
       if (gen !== generation) return false
-      if (!response.ok) throw new HttpStatusError(response.status)
+      if (!response.ok) throw new HttpStatusError(response.status, response.status === 409 ? await errorCodeOf(response) : null)
       applyJob((await response.json()) as ReadAloudJob, 'update')
       return true
     } catch (error) {
@@ -307,8 +320,9 @@ export function useReadAloud(options: UseReadAloudOptions) {
     return mutate('cancel', '', { method: 'DELETE' })
   }
 
-  function publish(): Promise<boolean> {
-    return mutate('publish', '/publish', { method: 'POST' })
+  function publish(force = false): Promise<boolean> {
+    if (!force) return mutate('publish', '/publish', { method: 'POST' })
+    return mutate('publish', '/publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
   }
 
   function retry(): Promise<boolean> {

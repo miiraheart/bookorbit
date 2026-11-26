@@ -201,9 +201,9 @@ export class ReadAloudJobRepository {
   }
 
   /** The book's folder and its library's allowed formats, for eligibility checks the detail DTO doesn't carry. */
-  async findBookPlacement(bookId: number): Promise<{ folderPath: string; allowedFormats: string[] } | null> {
+  async findBookPlacement(bookId: number): Promise<{ folderPath: string; allowedFormats: string[]; libraryName: string; status: string } | null> {
     const [row] = await this.db
-      .select({ folderPath: books.folderPath, allowedFormats: libraries.allowedFormats })
+      .select({ folderPath: books.folderPath, allowedFormats: libraries.allowedFormats, libraryName: libraries.name, status: books.status })
       .from(books)
       .innerJoin(libraries, eq(books.libraryId, libraries.id))
       .where(eq(books.id, bookId))
