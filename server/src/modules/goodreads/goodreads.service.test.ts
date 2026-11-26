@@ -140,11 +140,20 @@ describe('GoodreadsService', () => {
   });
 
   it('attaches the newest request made for a book from this page', async () => {
-    repo.findRequests.mockResolvedValue(new Map([['b', { id: 42, status: 'pending' }]]));
+    repo.findRequests.mockResolvedValue(new Map([['b', { ebook: { id: 42, status: 'pending' } }]]));
     await service.replaceSnapshot(7, { items: [item({ key: 'a', goodreadsId: 'a' }), item({ key: 'b', goodreadsId: 'b' })] });
     const page = await service.listItems(user, { shelf: 'to-read', sort: 'title' });
     expect(page.items.find((row) => row.key === 'b')?.request).toEqual({ id: 42, status: 'pending' });
     expect(page.items.find((row) => row.key === 'a')?.request).toBeNull();
+    expect(page.items.find((row) => row.key === 'a')?.requests).toEqual({});
+  });
+
+  it('returns the ebook and the audiobook request of a book, the newer one as its request', async () => {
+    repo.findRequests.mockResolvedValue(new Map([['b', { ebook: { id: 42, status: 'pending' }, audiobook: { id: 57, status: 'approved' } }]]));
+    await service.replaceSnapshot(7, { items: [item({ key: 'b', goodreadsId: 'b' })] });
+    const [row] = (await service.listItems(user, { shelf: 'to-read' })).items;
+    expect(row?.requests).toEqual({ ebook: { id: 42, status: 'pending' }, audiobook: { id: 57, status: 'approved' } });
+    expect(row?.request).toEqual({ id: 57, status: 'approved' });
   });
 
   it('sends no cards and asks for none when nothing on the page is owned', async () => {

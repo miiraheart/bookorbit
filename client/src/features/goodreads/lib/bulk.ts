@@ -1,7 +1,11 @@
 import { isCancellableBookRequestStatus, type GoodreadsShelfRow, type GoodreadsRequestState } from '@bookorbit/types'
 
 /** A request that no longer holds the work: requesting again is allowed. */
-const RELEASED_STATUSES = new Set(['cancelled', 'rejected'])
+export const RELEASED_STATUSES: ReadonlySet<string> = new Set(['cancelled', 'rejected'])
+
+export function isLiveRequest(state: GoodreadsRequestState | null | undefined): boolean {
+  return !!state && !RELEASED_STATUSES.has(state.status)
+}
 
 export interface BulkRequestSummary {
   requested: number
@@ -19,7 +23,7 @@ export interface BulkCancelSummary {
 
 /** Owned books are never requested, and a book whose request is still alive is not requested twice. */
 export function requestableRows(rows: GoodreadsShelfRow[]): GoodreadsShelfRow[] {
-  return rows.filter((row) => row.bookIds.length === 0 && (!row.request || RELEASED_STATUSES.has(row.request.status)))
+  return rows.filter((row) => row.bookIds.length === 0 && !isLiveRequest(row.request))
 }
 
 /** Only requests BookOrbit itself still lets you cancel, and never one for a book already owned. */

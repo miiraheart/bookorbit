@@ -1,5 +1,5 @@
 import { watch, type WritableComputedRef } from 'vue'
-import type { Locale } from '@bookorbit/types'
+import type { BookRequestMediaKind, Locale } from '@bookorbit/types'
 import { i18n, type MessageSchema } from '@/i18n'
 import { compileIcuCatalog } from '@/i18n/icu'
 
@@ -73,6 +73,17 @@ const EN = {
   copyBoth: 'Ebook + audio',
   copyMore: '+{count}',
   unavailableCopy: 'Unavailable copy',
+  notInLibrary: 'Not in library',
+  requestEbook: 'Request ebook',
+  requestAudiobook: 'Request audiobook',
+  viewEbookRequest: 'View ebook request',
+  viewAudiobookRequest: 'View audiobook request',
+  ebookRequestState: 'Ebook: {status}',
+  audiobookRequestState: 'Audiobook: {status}',
+  bookInfo: 'Book info',
+  select: 'Select',
+  deselect: 'Deselect',
+  moreActions: 'More actions for {title}',
   detail: {
     series: 'Series',
     published: 'Published',
@@ -164,6 +175,17 @@ const FR: typeof EN = {
   copyBoth: 'Livre numérique + audio',
   copyMore: '+{count}',
   unavailableCopy: 'Exemplaire indisponible',
+  notInLibrary: 'Pas dans la bibliothèque',
+  requestEbook: 'Demander le livre numérique',
+  requestAudiobook: 'Demander le livre audio',
+  viewEbookRequest: 'Voir la demande de livre numérique',
+  viewAudiobookRequest: 'Voir la demande de livre audio',
+  ebookRequestState: 'Livre numérique : {status}',
+  audiobookRequestState: 'Livre audio : {status}',
+  bookInfo: 'Infos du livre',
+  select: 'Sélectionner',
+  deselect: 'Désélectionner',
+  moreActions: 'Plus d’actions pour {title}',
   detail: {
     series: 'Série',
     published: 'Publié',
@@ -211,4 +233,14 @@ export function installGoodreadsMessages(): void {
 /** A shelf Goodreads names itself gets a translated label; a custom shelf keeps its own name. */
 export function goodreadsShelfLabelKey(shelf: string): string | null {
   return shelf in EN.shelves ? `${GOODREADS_MESSAGE_ROOT}.shelves.${shelf}` : null
+}
+
+const REQUEST_KEYS: Record<BookRequestMediaKind, { request: string; view: string; state: string }> = {
+  ebook: { request: 'requestEbook', view: 'viewEbookRequest', state: 'ebookRequestState' },
+  audiobook: { request: 'requestAudiobook', view: 'viewAudiobookRequest', state: 'audiobookRequestState' },
+}
+
+/** The message keys, under the Goodreads root, for requesting one media kind and for its existing request. */
+export function goodreadsRequestKeys(kind: BookRequestMediaKind): { request: string; view: string; state: string } {
+  return REQUEST_KEYS[kind]
 }

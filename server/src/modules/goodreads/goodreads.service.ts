@@ -14,6 +14,7 @@ import type { RequestUser } from '../../common/types/request-user';
 import { BookService } from '../book/book.service';
 import type { AddGoodreadsSourceDto, ListGoodreadsItemsDto, ReplaceGoodreadsSnapshotDto } from './dto';
 import { loadShelfCards } from './goodreads-cards';
+import { newestRequest } from './goodreads-requests';
 import { GoodreadsRepository } from './goodreads.repository';
 
 /** Goodreads' own shelves first, in reading order; any custom shelf follows alphabetically. */
@@ -178,11 +179,10 @@ export class GoodreadsService {
     );
     return {
       total: matching.length,
-      items: page.map((item) => ({
-        ...item,
-        isNew: isNewItem(item, source),
-        request: requests.get(item.goodreadsId ?? item.key) ?? null,
-      })),
+      items: page.map((item) => {
+        const found = requests.get(item.goodreadsId ?? item.key) ?? {};
+        return { ...item, isNew: isNewItem(item, source), request: newestRequest(found), requests: found };
+      }),
       cards: await loadShelfCards(this.bookService, user, page),
     };
   }

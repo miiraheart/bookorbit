@@ -1,5 +1,5 @@
 import type { BookCard } from "./book";
-import type { BookRequestStatus } from "./book-request";
+import type { BookRequestMediaKind, BookRequestStatus } from "./book-request";
 
 /** Book requests made from the Goodreads page carry this provider key and the Goodreads book id. */
 export const GOODREADS_PROVIDER_KEY = "goodreads";
@@ -78,9 +78,14 @@ export interface GoodreadsRequestState {
   status: BookRequestStatus;
 }
 
+/** The newest request per media kind; a legacy comic request counts as the ebook one. */
+export type GoodreadsRequests = Partial<Record<BookRequestMediaKind, GoodreadsRequestState>>;
+
 export interface GoodreadsShelfRow extends GoodreadsStoredItem {
   isNew: boolean;
+  /** The newest of `requests`, whatever its kind. */
   request: GoodreadsRequestState | null;
+  requests: GoodreadsRequests;
 }
 
 export interface GoodreadsShelfPage {

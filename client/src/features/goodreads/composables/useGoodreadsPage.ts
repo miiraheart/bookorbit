@@ -3,7 +3,14 @@ import { useI18n } from 'vue-i18n'
 import { refDebounced, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { useRouter } from 'vue-router'
-import { GOODREADS_LIST_SHELF, type GoodreadsOverview, type GoodreadsShelfRow, type GoodreadsSort } from '@bookorbit/types'
+import {
+  GOODREADS_LIST_SHELF,
+  type BookRequestMediaKind,
+  type GoodreadsOverview,
+  type GoodreadsRequestState,
+  type GoodreadsShelfRow,
+  type GoodreadsSort,
+} from '@bookorbit/types'
 import { usePermissions } from '@/features/auth/composables/usePermissions'
 import { useRequestLanguageDefault } from '@/features/book-requests/composables/useRequestDestinationDefault'
 import { formatDate } from '@/i18n/formatters'
@@ -121,8 +128,8 @@ export function useGoodreadsPage() {
     sheetRow.value = row
   }
 
-  async function handleSheetRequest(row: GoodreadsShelfRow) {
-    await handleRequest(row)
+  async function handleSheetRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind) {
+    await handleRequest(row, kind)
     const updated = rows.value.find((entry) => entry.key === row.key)
     if (updated && sheetRow.value?.key === row.key) sheetRow.value = updated
   }
@@ -139,12 +146,16 @@ export function useGoodreadsPage() {
     selectedKeys.value = pageSelection.value === 'all' ? new Set() : new Set(rows.value.map((row) => row.key))
   }
 
-  async function handleRequest(row: GoodreadsShelfRow) {
+  function recordRequest(key: string, kind: BookRequestMediaKind, created: GoodreadsRequestState | null) {
+    const current = rows.value.find((entry) => entry.key === key)
+    if (created && current) patchRow(key, { request: created, requests: { ...current.requests, [kind]: created } })
+  }
+
+  async function handleRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind = 'ebook') {
     if (requestingKey.value) return
     requestingKey.value = row.key
     try {
-      const created = await requestGoodreadsBook(row, language.resolveLanguage(null))
-      if (created) patchRow(row.key, { request: created })
+      recordRequest(row.key, kind, await requestGoodreadsBook(row, language.resolveLanguage(null), kind))
       toast.success(gt('requested', { title: row.title }))
     } catch (reason) {
       toast.error(errorMessage(reason, 'goodreads.requestFailed'))
@@ -154,16 +165,14 @@ export function useGoodreadsPage() {
     }
   }
 
-  async function handleBulkRequest() {
+  async function handleBulkRequest(kind: BookRequestMediaKind = 'ebook') {
     if (bulkBusy.value) return
     bulkBusy.value = true
     try {
       const summary = await requestRows(
         selectedRows.value,
-        (row) => requestGoodreadsBook(row, language.resolveLanguage(null)),
-        (row, created) => {
-          if (created) patchRow(row.key, { request: created })
-        },
+        (row) => requestGoodreadsBook(row, language.resolveLanguage(null), kind),
+        (row, created) => recordRequest(row.key, kind, created),
       )
       const message = gt('bulkRequested', {
         requested: summary.requested,

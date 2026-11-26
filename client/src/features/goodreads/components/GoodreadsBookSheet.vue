@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BookPlus, ExternalLink, Loader2, Star } from '@lucide/vue'
-import type { GoodreadsShelfRow, MetadataCandidate } from '@bookorbit/types'
+import { BookPlus, ExternalLink, Headphones, Loader2, Star } from '@lucide/vue'
+import { BOOK_REQUEST_MEDIA_KINDS, type BookRequestMediaKind, type GoodreadsShelfRow, type MetadataCandidate } from '@bookorbit/types'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import BookCoverArtwork from '@/features/book/components/BookCoverArtwork.vue'
@@ -11,14 +11,15 @@ import { useSafeHtml } from '@/features/book/composables/useSafeHtml'
 import { providerIconPathSafe } from '@/features/book/lib/provider-icons'
 import { formatDate, formatLanguageName } from '@/i18n/formatters'
 import { lookupGoodreadsBook } from '../api/goodreads.api'
-import { GOODREADS_MESSAGE_ROOT } from '../i18n'
+import { GOODREADS_MESSAGE_ROOT, goodreadsRequestKeys } from '../i18n'
+import { isLiveRequest } from '../lib/bulk'
 
 /**
  * A book from a Goodreads shelf that is not in the library. The exact Goodreads book is read by its id;
  * only when that fails does a provider search stand in, and then only results whose title matches.
  */
-const props = defineProps<{ row: GoodreadsShelfRow | null; canRequest: boolean; busy: boolean }>()
-const emit = defineEmits<{ close: []; request: [row: GoodreadsShelfRow] }>()
+const props = defineProps<{ row: GoodreadsShelfRow | null; canRequest: boolean; busy: boolean; owned?: boolean }>()
+const emit = defineEmits<{ close: []; request: [row: GoodreadsShelfRow, kind: BookRequestMediaKind] }>()
 
 const { t } = useI18n()
 function gt(key: string, params: Record<string, unknown> = {}): string {
@@ -50,8 +51,17 @@ const goodreadsUrl = computed(() => (props.row?.goodreadsId ? `https://www.goodr
 const coverSrc = computed(() => props.row?.coverUrl?.replace(/\._S[XY]\d+_/, '') ?? exact.value?.coverUrl ?? null)
 const safeDescription = useSafeHtml(() => candidate.value?.description)
 const busyLooking = computed(() => lookingUp.value || (isStreaming.value && !candidate.value))
-const requestable = computed(
-  () => props.canRequest && props.row !== null && props.row.bookIds.length === 0 && (!props.row.request || ['cancelled', 'rejected'].includes(props.row.request.status)),
+/** Without a copy on screen the book can be requested, once per kind while that request is alive. */
+const requestableKinds = computed<BookRequestMediaKind[]>(() => {
+  const row = props.row
+  if (!props.canRequest || !row || props.owned) return []
+  return BOOK_REQUEST_MEDIA_KINDS.filter((kind) => !isLiveRequest(row.requests[kind]))
+})
+const requestLinks = computed(() =>
+  BOOK_REQUEST_MEDIA_KINDS.flatMap((kind) => {
+    const state = props.row?.requests[kind]
+    return state ? [{ kind, id: state.id, label: gt(goodreadsRequestKeys(kind).state, { status: t(`bookRequests.status.${state.status}`) }) }] : []
+  }),
 )
 
 async function lookUp(row: GoodreadsShelfRow) {
@@ -90,8 +100,8 @@ function handleOpenChange(open: boolean) {
   if (!open) emit('close')
 }
 
-function handleRequest() {
-  if (props.row) emit('request', props.row)
+function handleRequest(kind: BookRequestMediaKind) {
+  if (props.row) emit('request', props.row, kind)
 }
 </script>
 
@@ -152,14 +162,23 @@ function handleRequest() {
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <Button v-if="requestable" size="sm" :disabled="busy" data-testid="goodreads-sheet-request" @click="handleRequest">
-              <BookPlus class="size-3.5" aria-hidden="true" />{{ gt('request') }}
+            <Button
+              v-for="kind in requestableKinds"
+              :key="kind"
+              size="sm"
+              :disabled="busy"
+              :data-testid="kind === 'ebook' ? 'goodreads-sheet-request' : 'goodreads-sheet-request-audiobook'"
+              @click="handleRequest(kind)"
+            >
+              <component :is="kind === 'ebook' ? BookPlus : Headphones" class="size-3.5" aria-hidden="true" />{{ gt(goodreadsRequestKeys(kind).request) }}
             </Button>
             <RouterLink
-              v-else-if="row.request"
-              :to="{ name: 'book-request-detail', params: { id: row.request.id } }"
+              v-for="link in requestLinks"
+              :key="link.kind"
+              :to="{ name: 'book-request-detail', params: { id: link.id } }"
               class="flex h-8 items-center rounded-md border border-border px-3 text-sm hover:bg-accent"
-              >{{ t(`bookRequests.status.${row.request.status}`) }}</RouterLink
+              :data-testid="`goodreads-sheet-request-state-${link.kind}`"
+              >{{ link.label }}</RouterLink
             >
             <a
               v-if="goodreadsUrl"

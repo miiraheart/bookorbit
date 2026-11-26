@@ -54,6 +54,16 @@ describe('goodreads api', () => {
     })
   })
 
+  it('asks for an audiobook when told to, and an ebook by default', async () => {
+    mockApi.mockImplementation(() => Promise.resolve(jsonResponse({ request: { id: 5, status: 'pending' } }, 201)))
+
+    await requestGoodreadsBook(book, null, 'audiobook')
+    await requestGoodreadsBook(book, null)
+
+    const kinds = mockApi.mock.calls.map(([, init]) => (JSON.parse(String(init?.body)) as { mediaKind: string }).mediaKind)
+    expect(kinds).toEqual(['audiobook', 'ebook'])
+  })
+
   it('leaves the language to the server when the user has no default', async () => {
     mockApi.mockResolvedValue(jsonResponse({ request: { id: 3, status: 'pending' } }, 201))
 

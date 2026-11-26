@@ -94,6 +94,7 @@ function row(bookIds: number[], overrides: Partial<GoodreadsShelfRow> = {}): Goo
     firstSeenAt: '2026-11-25T00:00:00.000Z',
     isNew: true,
     request: null,
+    requests: {},
     ...overrides,
   }
 }

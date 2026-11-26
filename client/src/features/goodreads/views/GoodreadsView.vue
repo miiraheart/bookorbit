@@ -64,6 +64,7 @@ function handleCancelConfirmClose() {
     <GoodreadsBookSheet
       :row="page.sheetRow"
       :can-request="page.canRequest"
+      :owned="page.sheetRow !== null && library.shownCard(page.sheetRow) !== null"
       :busy="page.requestingKey !== null"
       @close="page.closeSheet"
       @request="page.handleSheetRequest"

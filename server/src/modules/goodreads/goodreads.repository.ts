@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { GOODREADS_PROVIDER_KEY, type BookRequestStatus } from '@bookorbit/types';
+import { GOODREADS_PROVIDER_KEY, type GoodreadsRequests } from '@bookorbit/types';
 
 import { DB } from '../../db';
 import * as schema from '../../db/schema';
+import { groupRequests } from './goodreads-requests';
 
 type Db = NodePgDatabase<typeof schema>;
 
@@ -33,12 +34,16 @@ export class GoodreadsRepository {
       });
   }
 
-  /** The newest request per Goodreads book this user made from the Goodreads page. */
-  async findRequests(userId: number, goodreadsIds: string[]): Promise<Map<string, { id: number; status: BookRequestStatus }>> {
-    const found = new Map<string, { id: number; status: BookRequestStatus }>();
-    if (goodreadsIds.length === 0) return found;
+  /** The newest request per Goodreads book and media kind this user made from the Goodreads page. */
+  async findRequests(userId: number, goodreadsIds: string[]): Promise<Map<string, GoodreadsRequests>> {
+    if (goodreadsIds.length === 0) return new Map();
     const rows = await this.db
-      .select({ id: schema.bookRequests.id, status: schema.bookRequests.status, providerId: schema.bookRequests.providerId })
+      .select({
+        id: schema.bookRequests.id,
+        status: schema.bookRequests.status,
+        providerId: schema.bookRequests.providerId,
+        mediaKind: schema.bookRequests.mediaKind,
+      })
       .from(schema.bookRequests)
       .where(
         and(
@@ -48,9 +53,6 @@ export class GoodreadsRepository {
         ),
       )
       .orderBy(desc(schema.bookRequests.id));
-    for (const row of rows) {
-      if (row.providerId && !found.has(row.providerId)) found.set(row.providerId, { id: row.id, status: row.status as BookRequestStatus });
-    }
-    return found;
+    return groupRequests(rows);
   }
 }

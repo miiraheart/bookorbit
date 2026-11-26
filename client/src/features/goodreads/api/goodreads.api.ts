@@ -1,6 +1,7 @@
 import {
   GOODREADS_PROVIDER_KEY,
   type BookRequestBulkResult,
+  type BookRequestMediaKind,
   type BookRequestStatus,
   type GoodreadsOverview,
   type GoodreadsShelfItem,
@@ -69,11 +70,12 @@ interface CreatedRequest {
 export async function requestGoodreadsBook(
   item: GoodreadsShelfItem,
   language: string | null,
+  mediaKind: BookRequestMediaKind = 'ebook',
 ): Promise<{ id: number; status: BookRequestStatus } | null> {
   const body = await apiJson<CreatedRequest>(
     '/api/v1/book-requests',
     jsonBody('POST', {
-      mediaKind: 'ebook',
+      mediaKind,
       title: item.title,
       authors: item.authors,
       ...(item.isbn13 ? { isbn13: item.isbn13 } : {}),

@@ -150,7 +150,7 @@ function handleCancelRemove() {
       </label>
       <span class="text-xs text-muted-foreground">{{ gt('selected', { count: page.selectedRows.length }) }}</span>
       <div class="ml-auto flex items-center gap-2">
-        <Button size="sm" :disabled="page.bulkBusy || !page.canBulkRequest" data-testid="goodreads-bulk-request" @click="page.handleBulkRequest">
+        <Button size="sm" :disabled="page.bulkBusy || !page.canBulkRequest" data-testid="goodreads-bulk-request" @click="page.handleBulkRequest()">
           <BookPlus class="size-3.5" aria-hidden="true" />{{ gt('bulkRequest') }}
         </Button>
         <Button

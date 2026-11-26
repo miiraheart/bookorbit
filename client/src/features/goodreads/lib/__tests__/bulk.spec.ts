@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { GoodreadsRequestState, GoodreadsShelfRow } from '@bookorbit/types'
-import { cancelSummary, cancellableRequestIds, requestRows, requestableRows } from '../bulk'
+import { cancelSummary, cancellableRequestIds, isLiveRequest, requestRows, requestableRows } from '../bulk'
 
 function row(key: string, overrides: Partial<GoodreadsShelfRow> = {}): GoodreadsShelfRow {
   return {
@@ -18,6 +18,7 @@ function row(key: string, overrides: Partial<GoodreadsShelfRow> = {}): Goodreads
     firstSeenAt: '2026-11-25T00:00:00.000Z',
     isNew: false,
     request: null,
+    requests: {},
     ...overrides,
   }
 }
@@ -51,6 +52,14 @@ describe('goodreads bulk selection', () => {
     expect(request.mock.calls.map(([entry]) => (entry as GoodreadsShelfRow).key)).toEqual(['free', 'cancelled'])
     expect(done).toHaveBeenCalledTimes(1)
     expect(summary).toEqual({ requested: 1, owned: 1, alreadyRequested: 2, failed: 1 })
+  })
+
+  it('treats only a cancelled or rejected request as released', () => {
+    expect(isLiveRequest({ id: 1, status: 'pending' })).toBe(true)
+    expect(isLiveRequest({ id: 1, status: 'available' })).toBe(true)
+    expect(isLiveRequest({ id: 1, status: 'cancelled' })).toBe(false)
+    expect(isLiveRequest({ id: 1, status: 'rejected' })).toBe(false)
+    expect(isLiveRequest(null)).toBe(false)
   })
 
   it('summarizes a bulk cancel against the selection', () => {

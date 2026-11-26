@@ -83,6 +83,7 @@ function row(key: string, bookIds: number[]): GoodreadsShelfRow {
     firstSeenAt: SYNCED,
     isNew: false,
     request: null,
+    requests: {},
   }
 }
 

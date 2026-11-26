@@ -28,6 +28,7 @@ function row(key: string, bookIds: number[]): GoodreadsShelfRow {
     firstSeenAt: '2026-11-25T00:00:00.000Z',
     isNew: false,
     request: null,
+    requests: {},
   }
 }
 
