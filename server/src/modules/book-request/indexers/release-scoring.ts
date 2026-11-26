@@ -201,6 +201,7 @@ export function toReleaseItem(scored: ScoredRelease, indexerName: string, reques
     sizeBytes: candidate.sizeBytes,
     seeders: candidate.seeders,
     leechers: candidate.leechers,
+    grabs: candidate.grabs ?? null,
     format: formats[0] ?? null,
     formats,
     language: resolveLanguage(candidate),

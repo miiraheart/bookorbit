@@ -103,6 +103,8 @@ export interface ReleaseCandidate {
    */
   seeders: number | null;
   leechers: number | null;
+  /** Completed downloads the source reports, where it reports them. Null or absent is unknown, never zero. */
+  grabs?: number | null;
   format?: string;
   language?: string;
   author?: string;

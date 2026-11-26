@@ -347,6 +347,7 @@ function sanitizeCandidate(raw: PluginReleaseCandidate, indexerId: number): Rele
     sizeBytes: finite(raw.sizeBytes),
     seeders: finite(raw.seeders),
     leechers: finite(raw.leechers),
+    grabs: finite(raw.grabs),
     ...optional('format', text(raw.format, MAX_PLUGIN_TEXT_LENGTH)),
     ...optional('language', text(raw.language, MAX_PLUGIN_TEXT_LENGTH)),
     ...optional('author', text(raw.author, MAX_PLUGIN_TEXT_LENGTH)),

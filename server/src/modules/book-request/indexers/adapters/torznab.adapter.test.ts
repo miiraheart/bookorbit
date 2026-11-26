@@ -202,6 +202,16 @@ describe('TorznabAdapter', () => {
     expect(release.leechers).toBe(8);
   });
 
+  it('reads the grabs count, and leaves it null when the feed does not state one', async () => {
+    const counted = ITEM.replace('<torznab:attr name="peers"', '<torznab:attr name="grabs" value="318" />\n    <torznab:attr name="peers"');
+    fetchMock.mockResolvedValueOnce(new Response(feed(counted))).mockResolvedValueOnce(new Response(feed(ITEM)));
+    const [withGrabs] = await new TorznabAdapter().search(query(), config(), AbortSignal.timeout(1000));
+    const [without] = await new TorznabAdapter().search(query(), config(), AbortSignal.timeout(1000));
+
+    expect(withGrabs.grabs).toBe(318);
+    expect(without.grabs).toBeNull();
+  });
+
   /**
    * Jackett reuses the tracker's download link as the guid for some trackers, and a private
    * tracker's download link carries the passkey. The guid is what the picker holds on to, so it

@@ -305,6 +305,7 @@ function parseItems(xml: string, indexerId: number): ReleaseCandidate[] {
       sizeBytes: toNumber(attrs.get('size') ?? item.size ?? enclosure?.['@_length']),
       seeders: toNumber(attrs.get('seeders')),
       leechers: leecherCount(attrs),
+      grabs: toNumber(attrs.get('grabs')),
       ...(attrs.get('author') ? { author: attrs.get('author') } : {}),
       ...(attrs.get('language') ? { language: attrs.get('language') } : {}),
       // Torznab reports freeleech as a downloadvolumefactor of 0: the release costs no download.

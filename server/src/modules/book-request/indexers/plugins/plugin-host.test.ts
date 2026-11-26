@@ -163,6 +163,12 @@ describe('PluginIndexerAdapter', () => {
       expect(release.leechers).toBeNull();
     });
 
+    it('keeps a numeric grabs count and turns junk or an absent one into null', async () => {
+      const grabs = [1204, 'lots', -3, { count: 5 }, undefined].map((value, index) => ({ guid: `g${index}`, title: 'Dune', grabs: value }));
+      const releases = await searched(grabs);
+      expect(releases.map((release) => release.grabs)).toEqual([1204, null, null, null, null]);
+    });
+
     it('normalizes seed goals without coercing plugin values or converting minutes twice', async () => {
       const releases = await searched([
         { guid: 'valid', title: 'Dune', seedRatioGoal: 1.5, seedTimeMinutes: 60.2 },

@@ -421,6 +421,8 @@ export interface ReleaseCandidateItem {
   /** Null where the indexer did not report a swarm count at all, which is not the same as zero. */
   seeders: number | null;
   leechers: number | null;
+  /** Completed downloads the source reports, where it reports them. Null or absent is unknown, never zero. */
+  grabs?: number | null;
   /** The primary format, preferred-first, for anywhere a single value is all that fits. */
   format: string | null;
   /**
