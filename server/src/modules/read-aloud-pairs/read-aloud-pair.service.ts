@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   isAudioFormat,
+  normalizeReadAlongLanguage,
   READ_ALOUD_QUARTZNET_LANGUAGES,
   type PairEbookRequest,
   type PairEbookResponse,
@@ -14,7 +15,7 @@ import { BookService } from '../book/book.service';
 import { canReplaceReadAlong } from '../read-aloud/read-aloud-presenter.service';
 import { ReadAlongMatchIndex, type ReadAlongIndexView } from './read-aloud-match-index';
 import { madeFromPair, ReadAloudMatchIndexRepository, type ReadAlongBookFile } from './read-aloud-match-index.repository';
-import { normalizeReadAlongLanguage, resolveReadAlongLanguage } from './read-aloud-match-keys';
+import { resolveReadAlongLanguage } from './read-aloud-match-keys';
 import {
   dismissedFor,
   dismissReadAlongCandidate,

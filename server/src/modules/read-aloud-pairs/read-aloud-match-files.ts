@@ -1,7 +1,4 @@
-import { normalizeWorkToken, type ReadAlongMatchFlag } from '@bookorbit/types';
-
-export const PART_OF_PATTERN = /part \d+ of \d+|\(\d+ of \d+\)/i;
-export const DRAMATIZED_PATTERN = /dramati[sz]ed|full cast|graphic ?audio/i;
+import { DRAMATIZED_PATTERN, normalizeWorkToken, type ReadAlongMatchFlag } from '@bookorbit/types';
 
 const PART_IN_NAME = /part (\d+) of (\d+)|\((\d+) of (\d+)\)/gi;
 const CONTAINER_FILE = /\.(?:m4b|m4a)$/i;

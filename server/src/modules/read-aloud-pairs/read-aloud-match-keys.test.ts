@@ -1,9 +1,10 @@
+import { normalizeReadAlongLanguage } from '@bookorbit/types';
+
 import {
   compareAuthors,
   compareReadAlongLanguages,
   compareReadAlongTitles,
   libraryLanguagePrior,
-  normalizeReadAlongLanguage,
   personTokenKey,
   readAlongFlags,
   readAlongTitleKeys,

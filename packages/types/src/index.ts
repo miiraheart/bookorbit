@@ -91,6 +91,7 @@ export * from "./hardcover";
 export * from "./readwise";
 export * from "./read-aloud";
 export * from "./read-aloud-pairs";
+export * from "./read-along-flags";
 export * from "./storygraph";
 export * from "./path";
 export * from "./sidebar";

@@ -1,7 +1,13 @@
-import { ISO_639_2_TO_1, languageSubtagOf, normalizeWorkToken, type ReadAlongLanguageMatch, type ReadAlongMatchFlag } from '@bookorbit/types';
+import {
+  normalizeReadAlongLanguage,
+  normalizeWorkToken,
+  readAlongTitleFlags,
+  type ReadAlongLanguageMatch,
+  type ReadAlongMatchFlag,
+} from '@bookorbit/types';
 
 import { AUDIO_TITLE_MARKERS } from '../book-duplicates/book-duplicate-normalize';
-import { audioFileFlags, DRAMATIZED_PATTERN, PART_OF_PATTERN } from './read-aloud-match-files';
+import { audioFileFlags } from './read-aloud-match-files';
 
 export type ReadAlongTitleKeys = {
   full: string | null;
@@ -22,30 +28,9 @@ const BRACKETED_PATTERN = /\([^)]*\)|\[[^\]]*\]/g;
 const LEADING_SERIES_BOOK_PATTERN = /^.*\bbook\s+\d+(\.\d+)?\s*-\s*/i;
 const TRAILING_SERIES_BOOK_PATTERN = /\s+-\s+[^:]*\bbook\s+\d+(\.\d+)?\s*$/i;
 
-const OMNIBUS_PATTERN = /omnibus|box ?set|bundle|collection|books? \d+ ?- ?\d+/i;
-const TRILOGY_PATTERN = /\btrilogy\b/i;
-const SINGLE_VOLUME_PATTERN = /\bbook\s+(?:\d+|[ivx]+)\b(?!\s*-\s*\d)/i;
 const SUMMARY_LIBRARY_PATTERN = /blinkist|summary/i;
-const SUMMARY_TITLE_PATTERN = /^summary of\b|summary guide/i;
-const DRAMATIZED_AUTHOR_PATTERN = /graphic ?aud|full cast/i;
 const NON_PERSON_AUTHOR_PATTERN = /graphic ?aud|full cast|^unknown( artist)?$|^various|audio ?book collection|published by/i;
 const NAME_SUFFIXES = new Set(['phd', 'ph', 'md', 'dr', 'lpc', 'lcsw', 'psyd', 'and', 'jr', 'sr', 'mr', 'mrs', 'ms']);
-
-const UNKNOWN_LANGUAGE_VALUES = new Set(['eee', 'und', 'xxx', 'mul', 'zxx', 'mis']);
-const LANGUAGE_ALIASES: Record<string, string> = {
-  english: 'en',
-  eng: 'en',
-  french: 'fr',
-  francais: 'fr',
-  français: 'fr',
-  fre: 'fr',
-  fra: 'fr',
-  spanish: 'es',
-  spa: 'es',
-  german: 'de',
-  ger: 'de',
-  deu: 'de',
-};
 
 function key(value: string | undefined): string | null {
   const normalized = normalizeWorkToken(value ?? '');
@@ -165,18 +150,6 @@ export function compareAuthors(left: readonly string[], right: readonly string[]
   return a.some((person) => b.some((other) => samePerson(person, other))) ? 'overlap' : 'conflict';
 }
 
-/** A two-letter language code, or null for empty and placeholder values such as eee, und and XXX. */
-export function normalizeReadAlongLanguage(value: string | null | undefined): string | null {
-  const lowered = value?.trim().toLowerCase();
-  if (!lowered || UNKNOWN_LANGUAGE_VALUES.has(lowered)) return null;
-  const alias = LANGUAGE_ALIASES[lowered];
-  if (alias) return alias;
-  const subtag = languageSubtagOf(lowered);
-  if (!subtag || UNKNOWN_LANGUAGE_VALUES.has(subtag)) return null;
-  if (subtag.length === 2) return subtag;
-  return LANGUAGE_ALIASES[subtag] ?? ISO_639_2_TO_1[subtag] ?? null;
-}
-
 export function libraryLanguagePrior(libraryName: string | null | undefined): string | null {
   if (!libraryName) return null;
   if (/french|francais|français/i.test(libraryName)) return 'fr';
@@ -211,26 +184,14 @@ export type ReadAlongFlagSource = {
   audioFileAliases?: readonly string[];
 };
 
-/** "Trilogy" names an omnibus unless the title is one book of it, as in "Locked Tomb Trilogy, Book 2". */
-function isOmnibusTitle(title: string): boolean {
-  return OMNIBUS_PATTERN.test(title) || (TRILOGY_PATTERN.test(title) && !SINGLE_VOLUME_PATTERN.test(title));
-}
-
 /**
  * Read from the raw title and subtitle, before markers and brackets are stripped. Omnibus reads the
  * title only: the subtitle column holds series labels such as "The Farseer Trilogy, Book 1". An
  * audiobook's file names are read too, since a part or a whole series often hides behind a clean title.
  */
 export function readAlongFlags(side: ReadAlongFlagSource, kind: 'audio' | 'epub'): ReadAlongMatchFlag[] {
-  const text = [side.title ?? '', side.subtitle ?? ''].join(' ');
-  const flags: ReadAlongMatchFlag[] = [];
-  if (side.abridged === true || (/\babridged\b/i.test(text) && !/\bunabridged\b/i.test(text))) flags.push('abridged');
   const shortAudio = kind === 'audio' && side.durationSeconds != null && side.durationSeconds > 0 && side.durationSeconds < SUMMARY_MAX_SECONDS;
-  if (SUMMARY_LIBRARY_PATTERN.test(side.libraryName ?? '') || SUMMARY_TITLE_PATTERN.test(side.title ?? '') || shortAudio) flags.push('summary');
-  if (isOmnibusTitle(side.title ?? '')) flags.push(kind === 'audio' ? 'omnibus_audio' : 'omnibus_epub');
-  if (kind === 'audio' && PART_OF_PATTERN.test(text)) flags.push('part_of');
-  const dramatizedAuthor = (side.authors ?? []).some((name) => DRAMATIZED_AUTHOR_PATTERN.test(name));
-  if (kind === 'audio' && (DRAMATIZED_PATTERN.test(text) || dramatizedAuthor)) flags.push('dramatized');
+  const flags = readAlongTitleFlags({ ...side, summary: SUMMARY_LIBRARY_PATTERN.test(side.libraryName ?? '') || shortAudio }, kind);
   if (kind === 'audio' && side.audioFiles?.length) flags.push(...audioFileFlags(side.title ?? '', side.audioFiles, side.audioFileAliases));
   return [...new Set(flags)];
 }
