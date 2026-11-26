@@ -76,6 +76,8 @@ export interface GoodreadsOverview {
 export interface GoodreadsRequestState {
   id: number;
   status: BookRequestStatus;
+  /** Present, and true, only on a request she fulfils herself. */
+  selfServe?: boolean;
 }
 
 /** The newest request per media kind; a legacy comic request counts as the ebook one. */

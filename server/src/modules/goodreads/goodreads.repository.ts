@@ -43,6 +43,7 @@ export class GoodreadsRepository {
         status: schema.bookRequests.status,
         providerId: schema.bookRequests.providerId,
         mediaKind: schema.bookRequests.mediaKind,
+        selfServe: schema.bookRequests.selfServe,
       })
       .from(schema.bookRequests)
       .where(

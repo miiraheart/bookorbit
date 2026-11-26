@@ -13,6 +13,7 @@ export interface RequestRow {
   status: string;
   providerId: string | null;
   mediaKind: string;
+  selfServe?: boolean;
 }
 
 /** Rows newest first: the first one seen per book and kind wins. A retired comic request stands for the ebook. */
@@ -22,7 +23,7 @@ export function groupRequests(rows: readonly RequestRow[]): Map<string, Goodread
     if (!row.providerId) continue;
     const kind = isBookRequestMediaKind(row.mediaKind) ? row.mediaKind : 'ebook';
     const entry = found.get(row.providerId) ?? {};
-    entry[kind] ??= { id: row.id, status: row.status as BookRequestStatus };
+    entry[kind] ??= { id: row.id, status: row.status as BookRequestStatus, ...(row.selfServe ? { selfServe: true } : {}) };
     found.set(row.providerId, entry);
   }
   return found;

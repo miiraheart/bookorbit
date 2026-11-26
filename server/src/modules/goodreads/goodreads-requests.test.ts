@@ -16,6 +16,12 @@ describe('groupRequests', () => {
     expect(grouped.size).toBe(2);
   });
 
+  it('marks a self-serve request, so the page can reopen its picks', () => {
+    expect(groupRequests([{ id: 6, status: 'approved', providerId: 'd', mediaKind: 'audiobook', selfServe: true }]).get('d')).toEqual({
+      audiobook: { id: 6, status: 'approved', selfServe: true },
+    });
+  });
+
   it('counts a retired comic request as the ebook one', () => {
     expect(groupRequests([{ id: 2, status: 'available', providerId: 'c', mediaKind: 'comic' }]).get('c')).toEqual({
       ebook: { id: 2, status: 'available' },
