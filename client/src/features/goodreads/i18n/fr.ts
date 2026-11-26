@@ -81,6 +81,8 @@ export const FR: GoodreadsMessages = {
   peek: 'Aperçu',
   readAlong: 'Lecture synchronisée',
   readAlongNote: 'La lecture synchronisée demande le livre numérique et le livre audio dans un même livre',
+  pairEbook: 'Associer le livre numérique',
+  createReadAlong: 'Créer la lecture synchronisée',
   copyMissing: 'Les fichiers de cet exemplaire sont introuvables',
   tabBookmarks: 'Signets',
   bookmarksLoading: 'Chargement des signets',

@@ -223,10 +223,12 @@ export const SIDEBAR_NAV_REGISTRY: readonly SidebarNavEntry[] = [
         ? 'tools-entity-manager'
         : context.hasPermission('library_delete_books') || context.hasPermission('library_merge_books')
           ? 'tools-duplicate-books'
-          : 'tools-chapter-health',
+          : context.hasPermission('library_edit_metadata')
+            ? 'tools-chapter-health'
+            : 'tools-read-along',
     }),
     isActive: (route) => routeNameStartsWith(route, 'tools-'),
-    permission: ['manage_libraries', 'library_delete_books', 'library_merge_books', 'library_edit_metadata'],
+    permission: ['manage_libraries', 'library_delete_books', 'library_merge_books', 'library_edit_metadata', 'library_generate_read_aloud'],
   },
   {
     id: 'jobs',

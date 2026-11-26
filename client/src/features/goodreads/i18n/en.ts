@@ -83,6 +83,8 @@ export const EN = {
   peek: 'Peek',
   readAlong: 'Read along',
   readAlongNote: 'Read-along needs the ebook and the audiobook in one book',
+  pairEbook: 'Pair ebook',
+  createReadAlong: 'Create read-along',
   copyMissing: 'The files of this copy are missing',
   tabBookmarks: 'Bookmarks',
   bookmarksLoading: 'Loading bookmarks',

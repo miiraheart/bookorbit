@@ -8,7 +8,7 @@ import { usePermissions } from '@/features/auth/composables/usePermissions'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { hasPermission } = usePermissions()
+const { hasPermission, isDemoRestrictedAccount } = usePermissions()
 
 interface ToolSection {
   label: string
@@ -33,6 +33,10 @@ const sections = computed<ToolSection[]>(() => {
 
   if (hasPermission('library_edit_metadata')) {
     result.push({ label: t('tools.header.chapterHealth'), routeName: 'tools-chapter-health' })
+  }
+
+  if (hasPermission('library_generate_read_aloud') && !isDemoRestrictedAccount.value) {
+    result.push({ label: t('tools.header.readAlong'), routeName: 'tools-read-along' })
   }
 
   return result

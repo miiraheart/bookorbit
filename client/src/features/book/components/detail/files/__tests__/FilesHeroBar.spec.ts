@@ -20,7 +20,7 @@ afterEach(() => {
   wrapper = null
 })
 
-function mountBar(props: { readAloudNote?: string | null; readAloudRetryable?: boolean; readAloudChecking?: boolean } = {}) {
+function mountBar(props: { readAloudNote?: string | null; readAloudRetryable?: boolean; readAloudChecking?: boolean; canPairEbook?: boolean } = {}) {
   wrapper = mount(FilesHeroBar, {
     attachTo: document.body,
     props: {
@@ -87,6 +87,21 @@ describe('FilesHeroBar read-aloud note', () => {
     expect(note.text()).toBe(t('book.detail.files.readAloud.loadFailedAgain', { count: 1 }))
     expect(note.text()).not.toBe(t('book.detail.files.readAloud.loadFailed'))
     expect(checkAgainButton(bar).text()).toBe(t('book.detail.files.readAloud.checkAgain'))
+  })
+
+  it('offers Find matching ebook beside a no-EPUB note and asks the tab to pair one', async () => {
+    const bar = mountBar({ readAloudNote: t('book.detail.files.readAloud.reasons.no_epub'), canPairEbook: true })
+
+    const find = bar.get('[data-test="read-aloud-pair-ebook"]')
+    expect(find.text()).toBe(t('book.detail.files.readAloud.findEbook'))
+    await find.trigger('click')
+    expect(bar.emitted('pairEbook')).toHaveLength(1)
+  })
+
+  it('offers no ebook search for other reasons', () => {
+    const bar = mountBar({ readAloudNote: t('book.detail.files.readAloud.reasons.worker_unavailable') })
+
+    expect(bar.find('[data-test="read-aloud-pair-ebook"]').exists()).toBe(false)
   })
 
   it('offers no recheck for a reason that checking again cannot change', () => {

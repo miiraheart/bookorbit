@@ -21,6 +21,7 @@ import WriteBackCard from '../files/WriteBackCard.vue'
 import AddBookFileModal from './AddBookFileModal.vue'
 import ReadAloudDialog from '@/features/read-aloud/components/ReadAloudDialog.vue'
 import ReadAloudJobCard from '@/features/read-aloud/components/ReadAloudJobCard.vue'
+import PairEbookSheet from '@/features/read-along-pairs/components/PairEbookSheet.vue'
 import { useReadAloud } from '@/features/read-aloud/composables/useReadAloud'
 import { isCompletedJob, readAloudEntryNote, resolveReadAloudEntry } from '@/features/read-aloud/lib/read-aloud'
 
@@ -73,6 +74,8 @@ const readAloudDialogOpen = ref(false)
 /** A previous job's input when the dialog opens for "Start over"; null for a fresh start. */
 const readAloudDialogInitial = ref<ReadAloudJobInput | null>(null)
 const readAloudCreateError = ref<string | null>(null)
+const pairSheetOpen = ref(false)
+const pairedEpubFileId = computed(() => readAloud.capability.value?.epubFiles.find((file) => file.bookId !== undefined)?.id ?? null)
 
 const readAloudEntry = computed(() =>
   resolveReadAloudEntry({
@@ -264,6 +267,11 @@ watch(
   { immediate: true },
 )
 
+function regenerateFromPair() {
+  pendingReadAloudCreate = true
+  void readAloud.reload()
+}
+
 function retryReadAloudCheck() {
   if (!readAloud.loading.value) void readAloud.reload()
 }
@@ -399,6 +407,7 @@ async function confirmDelete() {
       :read-aloud-note="readAloudNote"
       :read-aloud-retryable="readAloudEntry.kind === 'loadFailed'"
       :read-aloud-checking="readAloud.loading.value"
+      :can-pair-ebook="readAloud.capability.value?.reason === 'no_epub' && readAloudEntry.kind !== 'hidden'"
       :sort-key="sortKey"
       :sort-direction="sortDirection"
       :sort-options="sortOptions"
@@ -406,7 +415,9 @@ async function confirmDelete() {
       @add-file="openAddFileModal"
       @generate-read-aloud="openReadAloudDialog"
       @retry-read-aloud="retryReadAloudCheck"
+      @pair-ebook="pairSheetOpen = true"
     />
+    <PairEbookSheet v-model:open="pairSheetOpen" :book-id="book.id" :title="book.title" @changed="readAloud.reload()" @regenerate="regenerateFromPair" />
 
     <ReadAloudJobCard
       v-if="readAloudCardJob"
@@ -517,6 +528,7 @@ async function confirmDelete() {
       :capability="readAloud.capability.value"
       :default-language="book.language"
       :initial="readAloudDialogInitial"
+      :preferred-epub-file-id="pairedEpubFileId"
       :busy="readAloud.action.value === 'create'"
       :error="readAloudCreateError"
       @close="closeReadAloudDialog"

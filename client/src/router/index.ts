@@ -795,6 +795,16 @@ export const routes: RouteRecordRaw[] = [
             meta: { title: () => t('titles.chapterHealth') },
           },
           {
+            path: 'read-along',
+            name: 'tools-read-along',
+            component: () => import('@/features/tools/read-along/views/ReadAlongPairsView.vue'),
+            meta: {
+              requiredPermission: Permission.LibraryGenerateReadAloud,
+              forbiddenPermission: Permission.DemoRestricted,
+              title: () => t('titles.readAlong'),
+            },
+          },
+          {
             path: ':pathMatch(.*)*',
             redirect: { name: 'tools-entity-manager' },
           },

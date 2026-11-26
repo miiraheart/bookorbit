@@ -21,6 +21,13 @@ vi.mock('@/features/library/composables/useLibraries', () => ({
     ]),
   }),
 }))
+vi.mock('@/features/auth/composables/usePermissions', async () => {
+  const { computed } = await import('vue')
+  return { usePermissions: () => ({ hasPermission: () => true, isDemoRestrictedAccount: computed(() => false) }) }
+})
+vi.mock('@/features/read-along-pairs/api/read-along-pairs.api', () => ({
+  fetchCandidates: vi.fn<() => Promise<unknown>>(async () => ({ pair: null, pairState: null, candidates: [], dismissedEbookBookIds: [], dismissed: [] })),
+}))
 vi.mock('../../api/bookmarks.api', () => ({
   fetchEbookBookmarks: vi.fn<() => Promise<unknown[]>>(async () => []),
   fetchAudioBookmarks: vi.fn<() => Promise<unknown[]>>(async () => []),
@@ -146,11 +153,20 @@ describe('GoodreadsOwnedSheet', () => {
     expect(fetchDetail).toHaveBeenCalledWith(2611)
   })
 
-  it('shows the read-along note for separate records and no Read along button', async () => {
+  it('offers Pair ebook for separate records instead of the note, and no Read along button', async () => {
     const wrapper = await mountSheet([audiobook(), ebook()], 2611)
 
-    expect(wrapper.get('[data-testid="goodreads-read-along-note"]').text()).toBe(t('goodreads.readAlongNote'))
+    expect(wrapper.get('[data-testid="goodreads-pair-ebook"]').text()).toContain(t('goodreads.pairEbook'))
+    expect(wrapper.find('[data-testid="goodreads-read-along-note"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="goodreads-read-along"]').exists()).toBe(false)
+  })
+
+  it('reads along from the read-along published into the audiobook record of a pair', async () => {
+    const narrated = card(2444, 1, [file(501, 'm4b'), file(702, 'epub', { mediaOverlay: { available: true, durationSeconds: 60 } })])
+    const wrapper = await mountSheet([narrated, ebook()], 2611)
+
+    expect(wrapper.get('[data-testid="goodreads-read-along"]').attributes('href')).toBe('/read/2444/702?format=epub')
+    expect(wrapper.find('[data-testid="goodreads-pair-ebook"]').exists()).toBe(false)
   })
 
   it('offers Read along for a narrated EPUB', async () => {

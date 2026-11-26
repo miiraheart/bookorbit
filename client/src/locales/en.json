@@ -8725,7 +8725,8 @@
               "cancelled": "The job was cancelled.",
               "unknown": "Something went wrong while creating the read-aloud."
             }
-          }
+          },
+          "findEbook": "Find matching ebook"
         },
         "stats": {
           "files": "Files",
@@ -16100,7 +16101,8 @@
       "bulkRename": "Bulk Rename",
       "duplicateBooks": "Duplicate Books",
       "missingResources": "Missing Resources",
-      "chapterHealth": "Chapter Health"
+      "chapterHealth": "Chapter Health",
+      "readAlong": "Read-along"
     },
     "entityTypes": {
       "authors": "Authors",
@@ -16807,6 +16809,122 @@
         "enqueue": "The lookups could not be queued.",
         "cancel": "The lookups could not be changed.",
         "dismiss": "The review could not be dismissed."
+      }
+    },
+    "readAlong": {
+      "accessDenied": "You need the permission to generate read-aloud books to pair ebooks with audiobooks.",
+      "search": "Search audiobooks",
+      "library": "Library",
+      "allLibraries": "All libraries",
+      "hint": "Pairing only changes metadata and can be undone. A read-along is made only when you create one, book by book.",
+      "empty": "No audiobooks match these filters.",
+      "status": {
+        "paired": "Paired",
+        "needs_attention": "Needs attention",
+        "suggested": "Suggested",
+        "ambiguous": "Ambiguous",
+        "flagged": "Flagged",
+        "none": "No match"
+      },
+      "tier": {
+        "exact": "Exact",
+        "likely": "Likely",
+        "maybe": "Maybe"
+      },
+      "flag": {
+        "abridged": "Abridged",
+        "summary": "Summary",
+        "omnibus_audio": "Omnibus audio",
+        "omnibus_epub": "Omnibus ebook",
+        "part_of": "Part of a set",
+        "dramatized": "Dramatized",
+        "language_conflict": "Other language"
+      },
+      "reason": {
+        "isbn": "Same ISBN",
+        "work_id": "Same work",
+        "title_exact": "Same title",
+        "title_head": "Same main title",
+        "title_close": "Similar title",
+        "author": "Same author",
+        "series": "Same series",
+        "language": "Same language",
+        "language_prior": "Language from library"
+      },
+      "summary": {
+        "audiobooks": "{count, plural, one {audiobook} other {audiobooks}}",
+        "ready": "{count, plural, one {read-along ready} other {read-alongs ready}}",
+        "filter": "Filter by status",
+        "all": "All"
+      },
+      "row": {
+        "ready": "Read-along ready",
+        "stale": "Read-along made from another ebook",
+        "moreCandidates": "{count, plural, one {# more candidate} other {# more candidates}}",
+        "pairedWith": "Paired with {title}",
+        "noCandidate": "No matching ebook found"
+      },
+      "candidate": {
+        "library": "from {library}",
+        "choose": "Choose {title}",
+        "chooseCopy": "Choose the copy in {library}",
+        "unknownLibrary": "Unknown library",
+        "otherCopies": "{count, plural, one {# other copy} other {# other copies}}",
+        "languageConflict": "This ebook is in another language than the audiobook.",
+        "dismiss": "Not this one",
+        "undismiss": "Suggest again"
+      },
+      "sheet": {
+        "title": "Pair an ebook",
+        "description": "Choose the ebook this audiobook reads along with.",
+        "current": "Paired with {title}",
+        "needsAttention": "The paired ebook file is gone. Choose another one or unpair.",
+        "ebookNumber": "Ebook {id}",
+        "search": "Search ebooks by title",
+        "empty": "No matching ebook yet. Search by title to find one.",
+        "preselected": "The ebook from this row is selected.",
+        "showDismissed": "{count, plural, one {Show # dismissed ebook} other {Show # dismissed ebooks}}",
+        "stale": "This audiobook has a read-along made from another ebook. Regenerate it?",
+        "dismissPrevious": "Don't suggest the previous ebook again",
+        "language": "Language",
+        "languageAuto": "Automatic"
+      },
+      "actions": {
+        "pair": "Pair",
+        "choose": "Choose ebook",
+        "change": "Change",
+        "unpair": "Unpair",
+        "create": "Create read-along",
+        "regenerate": "Regenerate",
+        "viewJob": "View job",
+        "open": "Read along"
+      },
+      "unpair": {
+        "kept": "{count, plural, one {This audiobook still has a read-along made from that ebook: {names}.} other {This audiobook still has # read-alongs made from that ebook: {names}.}}",
+        "cannotDelete": "Deleting it needs the permission to delete books.",
+        "delete": "{count, plural, one {Also delete that read-along} other {Also delete those read-alongs}}",
+        "keep": "{count, plural, one {Keep it} other {Keep them}}"
+      },
+      "acceptExact": {
+        "action": "Pair all exact matches",
+        "title": "Pair all exact matches?",
+        "description": "{count, plural, =0 {No exact match is waiting to be paired.} one {# audiobook will be paired with its exact ebook match. No read-along is created.} other {# audiobooks will be paired with their exact ebook match. No read-along is created.}}",
+        "confirm": "{count, plural, =0 {Pair} one {Pair #} other {Pair #}}"
+      },
+      "toast": {
+        "paired": "Paired {title}",
+        "unpaired": "Unpaired {title}",
+        "created": "Read-along started",
+        "acceptedExact": "{count, plural, one {Paired # audiobook} other {Paired # audiobooks}}"
+      },
+      "errors": {
+        "list": "The read-along list couldn't be loaded.",
+        "candidates": "The ebook candidates couldn't be loaded.",
+        "pair": "The ebook couldn't be paired.",
+        "unpair": "The pair couldn't be removed.",
+        "dismiss": "That ebook couldn't be updated.",
+        "acceptExact": "The exact matches couldn't be paired.",
+        "deleteReadAlong": "The read-along couldn't be deleted."
       }
     }
   },
@@ -17578,7 +17696,8 @@
     "readingHistory": "Reading History",
     "aiActivity": "AI activity",
     "aiStoryGuides": "Story guides",
-    "jobs": "Jobs"
+    "jobs": "Jobs",
+    "readAlong": "Read-along"
   },
   "tts": {
     "readerControls": {

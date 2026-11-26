@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import BookFormatChip from '@/features/book/components/BookFormatChip.vue'
 import { useLibraries } from '@/features/library/composables/useLibraries'
 import { GOODREADS_MESSAGE_ROOT } from '../i18n'
+import GoodreadsReadAlongAction from './GoodreadsReadAlongAction.vue'
 import { openableEntries, pickCopies, readerLocation } from '../lib/copies'
 
 /**
@@ -93,6 +94,6 @@ function handleSelect(bookId: number) {
         ><Headphones class="size-3.5" aria-hidden="true" />{{ gt('readAlong') }}</RouterLink
       >
     </Button>
-    <p v-else-if="separateRecords" class="text-xs text-muted-foreground" data-testid="goodreads-read-along-note">{{ gt('readAlongNote') }}</p>
+    <GoodreadsReadAlongAction v-else-if="separateRecords" :cards="cards" />
   </section>
 </template>

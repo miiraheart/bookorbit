@@ -29,12 +29,14 @@ const props = defineProps<{
   readAloudRetryable?: boolean
   /** An availability check is in flight, so "Check again" waits for it. */
   readAloudChecking?: boolean
+  /** The book has no EPUB; a paired ebook from another record would make it eligible. */
+  canPairEbook?: boolean
   sortKey: SortKey
   sortDirection: SortDirection
   sortOptions: { key: SortKey; label: string }[]
 }>()
 
-const emit = defineEmits<{ sort: [key: SortKey]; addFile: []; generateReadAloud: []; retryReadAloud: [] }>()
+const emit = defineEmits<{ sort: [key: SortKey]; addFile: []; generateReadAloud: []; retryReadAloud: []; pairEbook: [] }>()
 
 const { t, locale } = useI18n()
 const { coverUrl } = useCoverVersions()
@@ -116,6 +118,9 @@ function handleGenerateReadAloud() {
 }
 function handleRetryReadAloud() {
   if (!props.readAloudChecking) emit('retryReadAloud')
+}
+function handlePairEbook() {
+  emit('pairEbook')
 }
 </script>
 
@@ -248,6 +253,15 @@ function handleRetryReadAloud() {
       >
         <Loader2 v-if="readAloudChecking" class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
         {{ readAloudChecking ? t('book.detail.files.readAloud.checking') : t('book.detail.files.readAloud.checkAgain') }}
+      </button>
+      <button
+        v-if="canPairEbook"
+        type="button"
+        class="-mx-1 inline-flex min-h-6 items-center rounded px-1 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        data-test="read-aloud-pair-ebook"
+        @click="handlePairEbook"
+      >
+        {{ t('book.detail.files.readAloud.findEbook') }}
       </button>
     </div>
   </section>

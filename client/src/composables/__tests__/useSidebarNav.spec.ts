@@ -169,7 +169,7 @@ describe('sidebar nav registry', () => {
     expect(resolved.isActive).toBe(true)
   })
 
-  it.each(['manage_libraries', 'library_delete_books', 'library_merge_books', 'library_edit_metadata'])(
+  it.each(['manage_libraries', 'library_delete_books', 'library_merge_books', 'library_edit_metadata', 'library_generate_read_aloud'])(
     'shows Tools for the any-of permission %s',
     (permission) => {
       expect(allowedIds(makeContext({ permissions: [permission] }))).toContain('tools')
@@ -206,6 +206,14 @@ describe('sidebar nav registry', () => {
     const resolved = resolveNavEntry(entry('tools'), context, makeRoute('dashboard'), 'Tools')
 
     expect(resolved.to).toEqual({ name: 'tools-chapter-health' })
+  })
+
+  it('resolves Tools to read-along when the user can only generate read-aloud books', () => {
+    const context = makeContext({ permissions: ['library_generate_read_aloud'] })
+
+    const resolved = resolveNavEntry(entry('tools'), context, makeRoute('dashboard'), 'Tools')
+
+    expect(resolved.to).toEqual({ name: 'tools-read-along' })
   })
 
   it('prefers duplicate books over chapter health when the user can delete books too', () => {

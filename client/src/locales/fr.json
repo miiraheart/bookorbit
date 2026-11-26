@@ -7252,6 +7252,9 @@
           "failed": "Échec d'écriture",
           "indexed": "{name} indexé",
           "indexedMany": "Fichiers {count} {format} indexés"
+        },
+        "readAloud": {
+          "findEbook": "Trouver le livre numérique"
         }
       },
       "highlights": {
@@ -12301,7 +12304,8 @@
       "entityManager": "Gestionnaire d'entité",
       "bulkRename": "Renommer en masse",
       "duplicateBooks": "Livres en double",
-      "missingResources": "Ressources manquantes"
+      "missingResources": "Ressources manquantes",
+      "readAlong": "Lecture synchronisée"
     },
     "entityTypes": {
       "authors": "Auteurs",
@@ -12829,6 +12833,122 @@
         "list": "Impossible de charger ces entrées.",
         "clean": "Échec du nettoyage."
       }
+    },
+    "readAlong": {
+      "accessDenied": "Il faut la permission de générer des livres lus à voix haute pour associer des livres numériques aux livres audio.",
+      "search": "Rechercher des livres audio",
+      "library": "Bibliothèque",
+      "allLibraries": "Toutes les bibliothèques",
+      "hint": "Associer ne change que les métadonnées et peut être annulé. Une lecture synchronisée n'est créée que si vous la lancez, livre par livre.",
+      "empty": "Aucun livre audio ne correspond à ces filtres.",
+      "status": {
+        "paired": "Associé",
+        "needs_attention": "À vérifier",
+        "suggested": "Suggéré",
+        "ambiguous": "Ambigu",
+        "flagged": "Signalé",
+        "none": "Aucune correspondance"
+      },
+      "tier": {
+        "exact": "Exact",
+        "likely": "Probable",
+        "maybe": "Possible"
+      },
+      "flag": {
+        "abridged": "Abrégé",
+        "summary": "Résumé",
+        "omnibus_audio": "Intégrale audio",
+        "omnibus_epub": "Intégrale numérique",
+        "part_of": "Partie d'un ensemble",
+        "dramatized": "Adaptation dramatique",
+        "language_conflict": "Autre langue"
+      },
+      "reason": {
+        "isbn": "Même ISBN",
+        "work_id": "Même œuvre",
+        "title_exact": "Même titre",
+        "title_head": "Même titre principal",
+        "title_close": "Titre proche",
+        "author": "Même auteur",
+        "series": "Même série",
+        "language": "Même langue",
+        "language_prior": "Langue de la bibliothèque"
+      },
+      "summary": {
+        "audiobooks": "{count, plural, one {livre audio} other {livres audio}}",
+        "ready": "{count, plural, one {lecture synchronisée prête} other {lectures synchronisées prêtes}}",
+        "filter": "Filtrer par état",
+        "all": "Tous"
+      },
+      "row": {
+        "ready": "Lecture synchronisée prête",
+        "stale": "Lecture synchronisée faite avec un autre livre numérique",
+        "moreCandidates": "{count, plural, one {# autre candidat} other {# autres candidats}}",
+        "pairedWith": "Associé à {title}",
+        "noCandidate": "Aucun livre numérique correspondant"
+      },
+      "candidate": {
+        "library": "dans {library}",
+        "choose": "Choisir {title}",
+        "chooseCopy": "Choisir l'exemplaire de {library}",
+        "unknownLibrary": "Bibliothèque inconnue",
+        "otherCopies": "{count, plural, one {# autre exemplaire} other {# autres exemplaires}}",
+        "languageConflict": "Ce livre numérique n'est pas dans la langue du livre audio.",
+        "dismiss": "Pas celui-ci",
+        "undismiss": "Suggérer à nouveau"
+      },
+      "sheet": {
+        "title": "Associer un livre numérique",
+        "description": "Choisissez le livre numérique à lire avec ce livre audio.",
+        "current": "Associé à {title}",
+        "needsAttention": "Le fichier du livre numérique associé a disparu. Choisissez-en un autre ou dissociez.",
+        "ebookNumber": "Livre numérique {id}",
+        "search": "Rechercher un livre numérique par titre",
+        "empty": "Pas encore de livre numérique correspondant. Cherchez par titre pour en trouver un.",
+        "preselected": "Le livre numérique de cette ligne est sélectionné.",
+        "showDismissed": "{count, plural, one {Afficher # livre numérique écarté} other {Afficher # livres numériques écartés}}",
+        "stale": "Ce livre audio a une lecture synchronisée faite avec un autre livre numérique. La refaire ?",
+        "dismissPrevious": "Ne plus suggérer le livre numérique précédent",
+        "language": "Langue",
+        "languageAuto": "Automatique"
+      },
+      "actions": {
+        "pair": "Associer",
+        "choose": "Choisir un livre numérique",
+        "change": "Changer",
+        "unpair": "Dissocier",
+        "create": "Créer la lecture synchronisée",
+        "regenerate": "Refaire",
+        "viewJob": "Voir la tâche",
+        "open": "Lecture synchronisée"
+      },
+      "unpair": {
+        "kept": "{count, plural, one {Ce livre audio garde une lecture synchronisée faite avec ce livre numérique : {names}.} other {Ce livre audio garde # lectures synchronisées faites avec ce livre numérique : {names}.}}",
+        "cannotDelete": "La supprimer demande la permission de supprimer des livres.",
+        "delete": "{count, plural, one {Supprimer aussi cette lecture synchronisée} other {Supprimer aussi ces lectures synchronisées}}",
+        "keep": "{count, plural, one {La garder} other {Les garder}}"
+      },
+      "acceptExact": {
+        "action": "Associer les correspondances exactes",
+        "title": "Associer toutes les correspondances exactes ?",
+        "description": "{count, plural, =0 {Aucune correspondance exacte en attente.} one {# livre audio sera associé à son livre numérique exact. Aucune lecture synchronisée n'est créée.} other {# livres audio seront associés à leur livre numérique exact. Aucune lecture synchronisée n'est créée.}}",
+        "confirm": "{count, plural, =0 {Associer} one {Associer #} other {Associer #}}"
+      },
+      "toast": {
+        "paired": "{title} associé",
+        "unpaired": "{title} dissocié",
+        "created": "Lecture synchronisée lancée",
+        "acceptedExact": "{count, plural, one {# livre audio associé} other {# livres audio associés}}"
+      },
+      "errors": {
+        "list": "La liste n'a pas pu être chargée.",
+        "candidates": "Les livres numériques candidats n'ont pas pu être chargés.",
+        "pair": "Le livre numérique n'a pas pu être associé.",
+        "unpair": "L'association n'a pas pu être retirée.",
+        "dismiss": "Ce livre numérique n'a pas pu être mis à jour.",
+        "acceptExact": "Les correspondances exactes n'ont pas pu être associées.",
+        "deleteReadAlong": "La lecture synchronisée n'a pas pu être supprimée."
+      }
     }
   },
   "views": {
@@ -13116,7 +13236,8 @@
     "bookRequests": "Demandes",
     "bookRequestDetail": "Demande",
     "bookRequestReleases": "Choisir une release",
-    "tts": "Synthèse vocale"
+    "tts": "Synthèse vocale",
+    "readAlong": "Lecture synchronisée"
   },
   "tts": {
     "readerControls": {

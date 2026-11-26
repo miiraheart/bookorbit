@@ -6,9 +6,15 @@ import ToolsHeader from '../ToolsHeader.vue'
 
 const granted = vi.hoisted(() => new Set<string>())
 
-vi.mock('@/features/auth/composables/usePermissions', () => ({
-  usePermissions: () => ({ hasPermission: (name: string) => granted.has(name) }),
-}))
+vi.mock('@/features/auth/composables/usePermissions', async () => {
+  const { computed } = await import('vue')
+  return {
+    usePermissions: () => ({
+      hasPermission: (name: string) => granted.has(name),
+      isDemoRestrictedAccount: computed(() => granted.has('demo_restricted')),
+    }),
+  }
+})
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ name: 'tools-duplicate-books' }),
@@ -38,5 +44,14 @@ describe('ToolsHeader', () => {
     const t = i18n.global.t
 
     expect(sectionLabels()).toEqual([t('tools.header.duplicateBooks'), t('tools.header.missingResources')])
+  })
+
+  it('offers Read-along to a user who may generate read-aloud books, but not to a demo account', () => {
+    granted.add(Permission.LibraryGenerateReadAloud)
+    const t = i18n.global.t
+
+    expect(sectionLabels()).toEqual([t('tools.header.readAlong')])
+    granted.add('demo_restricted')
+    expect(sectionLabels()).toEqual([])
   })
 })
