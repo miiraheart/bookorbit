@@ -4,6 +4,8 @@ import {
   type BookRequestStatus,
   type GoodreadsRequestState,
   type GoodreadsRequests,
+  type GoodreadsShelfRow,
+  type GoodreadsStoredItem,
 } from '@bookorbit/types';
 
 export interface RequestRow {
@@ -24,6 +26,16 @@ export function groupRequests(rows: readonly RequestRow[]): Map<string, Goodread
     found.set(row.providerId, entry);
   }
   return found;
+}
+
+/** Requests are filed under the Goodreads book id; a row without one uses its key. */
+export function requestKey(item: Pick<GoodreadsStoredItem, 'goodreadsId' | 'key'>): string {
+  return item.goodreadsId ?? item.key;
+}
+
+export function shelfRow(item: GoodreadsStoredItem, requests: ReadonlyMap<string, GoodreadsRequests>, isNew: boolean): GoodreadsShelfRow {
+  const found = requests.get(requestKey(item)) ?? {};
+  return { ...item, isNew, request: newestRequest(found), requests: found };
 }
 
 export function newestRequest(requests: GoodreadsRequests): GoodreadsRequestState | null {

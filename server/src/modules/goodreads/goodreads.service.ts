@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   GOODREADS_OWN_SOURCE_ID,
+  type GoodreadsItemDetail,
   type GoodreadsOverview,
   type GoodreadsShelfItem,
   type GoodreadsShelfPage,
@@ -14,7 +15,8 @@ import type { RequestUser } from '../../common/types/request-user';
 import { BookService } from '../book/book.service';
 import type { AddGoodreadsSourceDto, ListGoodreadsItemsDto, ReplaceGoodreadsSnapshotDto } from './dto';
 import { loadShelfCards } from './goodreads-cards';
-import { newestRequest } from './goodreads-requests';
+import { relatedItems } from './goodreads-related';
+import { requestKey, shelfRow } from './goodreads-requests';
 import { GoodreadsRepository } from './goodreads.repository';
 
 /** Goodreads' own shelves first, in reading order; any custom shelf follows alphabetically. */
@@ -173,18 +175,22 @@ export class GoodreadsService {
     });
     const offset = query.offset ?? 0;
     const page = matching.slice(offset, offset + (query.limit ?? DEFAULT_LIMIT));
-    const requests = await this.repo.findRequests(
-      user.id,
-      page.map((item) => item.goodreadsId ?? item.key),
-    );
-    return {
-      total: matching.length,
-      items: page.map((item) => {
-        const found = requests.get(item.goodreadsId ?? item.key) ?? {};
-        return { ...item, isNew: isNewItem(item, source), request: newestRequest(found), requests: found };
-      }),
-      cards: await loadShelfCards(this.bookService, user, page),
-    };
+    return { total: matching.length, items: await this.toRows(user.id, page, source), cards: await loadShelfCards(this.bookService, user, page) };
+  }
+
+  async getItem(user: RequestUser, sourceId: string, key: string): Promise<GoodreadsItemDetail> {
+    const snapshot = await this.load(user.id);
+    const source = snapshot.sources.find((entry) => entry.id === sourceId);
+    const item = snapshot.items.find((entry) => entry.source === sourceId && entry.key === key);
+    if (!source || !item) throw new NotFoundException(`Unknown Goodreads book ${sourceId}/${key}`);
+    const books = [item, ...relatedItems(snapshot.items, item)];
+    const rows = await this.toRows(user.id, books, source);
+    return { item: rows[0]!, related: rows.slice(1), cards: await loadShelfCards(this.bookService, user, books) };
+  }
+
+  private async toRows(userId: number, items: GoodreadsStoredItem[], source: StoredSource | undefined) {
+    const requests = await this.repo.findRequests(userId, items.map(requestKey));
+    return items.map((item) => shelfRow(item, requests, isNewItem(item, source)));
   }
 
   async replaceSnapshot(userId: number, dto: ReplaceGoodreadsSnapshotDto): Promise<GoodreadsOverview> {

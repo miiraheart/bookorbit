@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import type { BookCard, GoodreadsShelfItem } from '@bookorbit/types';
 
 import type { RequestUser } from '../../common/types/request-user';
@@ -137,6 +137,27 @@ describe('GoodreadsService', () => {
     const page = await service.listItems(user, { shelf: 'to-read', q: 'miserables', limit: 10 });
     expect(page.total).toBe(1);
     expect(page.items[0]?.title).toBe('Les Misérables');
+  });
+
+  it('reads one book by source and key, with its requests, cards and other books by its author', async () => {
+    repo.findRequests.mockResolvedValue(new Map([['b', { audiobook: { id: 9, status: 'pending' } }]]));
+    await service.replaceSnapshot(7, {
+      items: [
+        item({ key: 'b', goodreadsId: 'b', title: 'Dark Age (Red Rising Saga, #5)', authors: ['Pierce Brown'], bookIds: [12] }),
+        item({ key: 'a', goodreadsId: 'a', title: 'Golden Son (Red Rising Saga, #2)', authors: ['Piérce  Brown'], bookIds: [11] }),
+        item({ key: 'c', goodreadsId: 'c', title: 'Dune', authors: ['Frank Herbert'] }),
+      ],
+    });
+    const detail = await service.getItem(user, 'me', 'b');
+    expect(detail.item).toMatchObject({ key: 'b', source: 'me', request: { id: 9, status: 'pending' } });
+    expect(detail.related.map((row) => row.key)).toEqual(['a']);
+    expect(detail.cards.map((card) => card.id)).toEqual([12, 11]);
+  });
+
+  it('refuses an unknown source or key', async () => {
+    await service.replaceSnapshot(7, { items: [item({ key: 'a', goodreadsId: 'a' })] });
+    await expect(service.getItem(user, 'me', 'zzz')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getItem(user, 'list-1', 'a')).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('attaches the newest request made for a book from this page', async () => {

@@ -97,6 +97,14 @@ export interface GoodreadsShelfPage {
 
 export type GoodreadsSort = "newest" | "title" | "author";
 
+/** One book of a source on its own, for its Goodreads page, with the same source's other books by its authors. */
+export interface GoodreadsItemDetail {
+  item: GoodreadsShelfRow;
+  related: GoodreadsShelfRow[];
+  /** Library cards for the copies of the item and of the related rows that this user may see. */
+  cards: BookCard[];
+}
+
 /** The sync job sends one source at a time; an error alone keeps that source's previous books. */
 export interface ReplaceGoodreadsSnapshotPayload {
   source?: string;

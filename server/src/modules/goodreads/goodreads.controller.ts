@@ -20,6 +20,11 @@ export class GoodreadsController {
     return this.service.listItems(user, query);
   }
 
+  @Get('items/:source/:key')
+  getItem(@CurrentUser() user: RequestUser, @Param('source') source: string, @Param('key') key: string) {
+    return this.service.getItem(user, source, key);
+  }
+
   @Put('snapshot')
   replaceSnapshot(@CurrentUser() user: RequestUser, @Body() dto: ReplaceGoodreadsSnapshotDto) {
     return this.service.replaceSnapshot(user.id, dto);
