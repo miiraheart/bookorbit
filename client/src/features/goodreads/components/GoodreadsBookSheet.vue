@@ -106,7 +106,7 @@ function handleRequest() {
 
         <div class="flex flex-col gap-4 p-4">
           <div class="flex gap-4">
-            <div class="aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-md border border-border">
+            <div class="relative aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-md border border-border">
               <BookCoverArtwork
                 :src="coverSrc"
                 :has-cover="coverSrc !== null"

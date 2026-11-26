@@ -525,7 +525,7 @@ async function handleRemove() {
               data-testid="goodreads-open"
               @click="handleOpen(row)"
             >
-            <div class="h-16 w-11 shrink-0 overflow-hidden rounded-sm border border-border">
+            <div class="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm border border-border">
               <BookCoverImage v-if="row.bookIds.length > 0" :book-id="ownedBookId(row)" type="thumbnail" :alt="row.title" class="size-full object-cover" />
               <BookCoverArtwork
                 v-else
