@@ -64,6 +64,8 @@ export type ReadAlongRow = {
   candidateCount: number;
   readAlong: { fileId: number; stale: boolean } | null;
   activeJobId: string | null;
+  /** Paired with an ebook this user cannot open; `pair` is then null. */
+  pairHidden?: boolean;
 };
 
 export type ReadAlongListSummary = Record<ReadAlongPairStatus, number> & { readAlongReady: number };
@@ -83,6 +85,8 @@ export type PairEbookRequest = {
 
 export type ReadAlongCandidatesResponse = {
   pair: ReadAlongPair | null;
+  /** Paired with an ebook this user cannot open; `pair` is then null. */
+  pairHidden?: boolean;
   pairState: "ok" | "needs_attention" | null;
   candidates: ReadAlongCandidate[];
   /** Ebook records dismissed for this audiobook. Their candidates are listed only when asked for. */
@@ -109,6 +113,12 @@ export type DismissCandidateRequest = { ebookBookId: number };
 
 export type ReadAlongDismissalsResponse = { dismissedEbookBookIds: number[] };
 
-export type AcceptExactRequest = { libraryId?: number };
+/** `dryRun` counts the pairs it would make and writes nothing. */
+export type AcceptExactRequest = { libraryId?: number; dryRun?: boolean };
 
 export type AcceptExactResponse = { paired: number; skipped: number };
+
+/** An audiobook paired with an ebook, seen from the ebook's record. */
+export type ReadAlongPairedAudiobook = { bookId: number; title: string; readAlongFileId: number | null };
+
+export type ReadAlongPairedAudiobooksResponse = { audiobooks: ReadAlongPairedAudiobook[] };

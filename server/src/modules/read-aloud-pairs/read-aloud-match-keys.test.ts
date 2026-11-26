@@ -22,7 +22,13 @@ describe('read-along title keys', () => {
 
   it('keeps head and tail around a colon', () => {
     const keys = readAlongTitleKeys('The Stormlight Archive 3: Oathbringer (3 of 6)');
-    expect(keys).toEqual({ full: 'thestormlightarchive3oathbringer', head: 'thestormlightarchive3', tail: 'oathbringer', hasSubtitle: true });
+    expect(keys).toEqual({
+      full: 'thestormlightarchive3oathbringer',
+      head: 'thestormlightarchive3',
+      tail: 'oathbringer',
+      joined: null,
+      hasSubtitle: true,
+    });
   });
 
   it('treats the subtitle column as a subtitle only for head matching', () => {

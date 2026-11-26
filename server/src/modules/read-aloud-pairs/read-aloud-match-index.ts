@@ -4,7 +4,7 @@ import { normalizeWorkToken, type ReadAlongCandidate } from '@bookorbit/types';
 import type { RequestUser } from '../../common/types/request-user';
 import { LibraryService } from '../library/library.service';
 import { canonicalizeIsbn } from '../book-duplicates/book-duplicate-normalize';
-import { compareReadAlongLanguages, personAuthors, personTokenKey, readAlongTitleKeys } from './read-aloud-match-keys';
+import { compareReadAlongLanguages, personAuthors, personSurname, personTokenKey, readAlongTitleKeys } from './read-aloud-match-keys';
 import {
   rankReadAlongCandidates,
   type RankReadAlongOptions,
@@ -53,31 +53,59 @@ function toMatchBook(row: ReadAlongCorpusRow): ReadAlongMatchBook {
 
 /**
  * Keys that every candidate the scorer can accept shares with its audiobook: a title key (full,
- * head or tail, since a head match compares one side's head with the other's full title), an ISBN,
- * a work id, or an author for fuzzy titles, which the scorer only keeps when an author overlaps.
+ * head, tail or title plus subtitle, since those compare with the other side's full title), an
+ * ISBN, a work id, or an author for fuzzy titles, which the scorer only keeps when an author
+ * overlaps. Authors are keyed by all their words and by family name, since "Robin Kimmerer" and
+ * "Robin Wall Kimmerer" are the same person to the scorer.
  */
 export function readAlongBucketKeys(book: ReadAlongMatchBook): string[] {
   const titles = readAlongTitleKeys(book.title, book.subtitle);
   const isbn = canonicalizeIsbn(book.isbn10 ?? null, book.isbn13 ?? null);
   const keys = [
-    ...[titles.full, titles.head, titles.tail].filter((key): key is string => Boolean(key)).map((key) => `t:${key}`),
+    ...[titles.full, titles.head, titles.tail, titles.joined].filter((key): key is string => Boolean(key)).map((key) => `t:${key}`),
     ...(isbn ? [`i:${isbn}`] : []),
     ...(book.workIds ?? []).map((id) => `w:${id}`),
     ...personAuthors(book.authors)
       .map(personTokenKey)
       .filter(Boolean)
       .map((key) => `a:${key}`),
+    ...personAuthors(book.authors)
+      .map(personSurname)
+      .filter((key): key is string => Boolean(key))
+      .map((key) => `s:${key}`),
   ];
   return [...new Set(keys)];
+}
+
+/** The other names each audio file goes by, so a copy renamed without its "(Part 1 of 2)" still shows it. */
+function audioFileAliases(rows: readonly ReadAlongCorpusRow[]): (row: ReadAlongCorpusRow) => string[] {
+  const byHash = new Map<string, Set<string>>();
+  for (const row of rows) {
+    (row.audio_hashes ?? []).forEach((hash, index) => {
+      const name = row.audio_files?.[index];
+      if (hash && name) byHash.set(hash, (byHash.get(hash) ?? new Set()).add(name));
+    });
+  }
+  return (row) => {
+    const own = new Set(row.audio_files ?? []);
+    return [...new Set((row.audio_hashes ?? []).flatMap((hash) => [...(byHash.get(hash) ?? [])]))].filter((name) => !own.has(name));
+  };
 }
 
 export function buildReadAlongCorpus(rows: readonly ReadAlongCorpusRow[]): Corpus {
   const audio: ReadAlongIndexedAudio[] = [];
   const ebooks: ReadAlongEbookBook[] = [];
   const buckets = new Map<string, ReadAlongEbookBook[]>();
+  const aliasesOf = audioFileAliases(rows);
   for (const row of rows) {
     if (row.has_audio) {
-      audio.push({ ...toMatchBook(row), durationSeconds: row.audio_seconds, ownEpubFileId: row.epub_file_id });
+      audio.push({
+        ...toMatchBook(row),
+        durationSeconds: row.audio_seconds,
+        audioFiles: row.audio_files ?? [],
+        audioFileAliases: aliasesOf(row),
+        ownEpubFileId: row.epub_file_id,
+      });
       continue;
     }
     if (row.epub_file_id === null) continue;

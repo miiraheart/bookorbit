@@ -44,7 +44,7 @@ describe('ReadAloudPairController', () => {
     await controller.undismiss(2238, { ebookBookId: 2614 }, EDITOR);
 
     expect(list.list).toHaveBeenCalledWith({ page: 1, pageSize: 50 }, EDITOR);
-    expect(list.acceptExact).toHaveBeenCalledWith(14, EDITOR);
+    expect(list.acceptExact).toHaveBeenCalledWith(14, EDITOR, false);
     expect(list.candidates).toHaveBeenCalledWith(2238, { q: 'circe', showDismissed: true }, EDITOR);
     expect(pairs.pair).toHaveBeenCalledWith(2238, { ebookBookId: 2614, ebookFileId: 11728, dismissPrevious: true }, EDITOR);
     expect(pairs.unpair).toHaveBeenCalledWith(2238, EDITOR);

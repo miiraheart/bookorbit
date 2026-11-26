@@ -15,7 +15,7 @@ const emit = defineEmits<{ pair: [row: ReadAlongRow]; choose: [row: ReadAlongRow
 const { t } = useI18n()
 
 const audiobook = computed(() => props.row.audiobook)
-const paired = computed(() => props.row.pair !== null)
+const paired = computed(() => props.row.pair !== null || props.row.pairHidden === true)
 const best = computed(() => props.row.best)
 /** One click is only offered where the match stands alone; anything less certain goes through the sheet. */
 const canQuickPair = computed(() => !paired.value && props.row.status === 'suggested' && best.value !== null)
@@ -106,9 +106,12 @@ function handleCreate(): void {
           <template v-if="row.candidateCount > 1">· {{ t('tools.readAlong.row.moreCandidates', { count: row.candidateCount - 1 }) }}</template>
         </p>
       </template>
+      <p v-else-if="!row.pair && paired" class="truncate text-foreground" data-testid="read-along-paired-hidden">
+        {{ t('tools.readAlong.row.pairedWith', { title: t('tools.readAlong.sheet.hiddenEbook') }) }}
+      </p>
       <RouterLink
-        v-else-if="paired"
-        :to="{ name: 'book-detail', params: { bookId: row.pair!.ebookBookId } }"
+        v-else-if="row.pair"
+        :to="{ name: 'book-detail', params: { bookId: row.pair.ebookBookId } }"
         class="block truncate text-foreground hover:underline"
         dir="auto"
         data-testid="read-along-paired-ebook"

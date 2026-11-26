@@ -65,6 +65,8 @@ describe('read-along pairs store', () => {
     );
     expect(Object.keys(store.pairs)).toEqual(['2238']);
     expect(store.dismissed).toEqual({ '2238': [1] });
+    const written = JSON.parse(serializeReadAlongPairsStore(store));
+    expect(written.pairs).toMatchObject({ '9': { ebookBookId: 'x' }, abc: entry });
   });
 
   it('throws on unreadable JSON or an unknown version so a write never wipes the pairs', () => {

@@ -17,6 +17,8 @@ export type ReadAlongPairsStore = {
   version: typeof READ_ALOUD_PAIRS_STORE_VERSION;
   pairs: Record<string, ReadAlongPairEntry>;
   dismissed: Record<string, number[]>;
+  /** Entries this version cannot read, kept as stored and written back unchanged. */
+  unreadable?: { pairs: Record<string, unknown>; dismissed: Record<string, unknown> };
 };
 
 export function emptyReadAlongPairsStore(): ReadAlongPairsStore {
@@ -55,19 +57,33 @@ export function parseReadAlongPairsStore(raw: string | null | undefined): ReadAl
     throw new Error(`${READ_ALOUD_PAIRS_SETTING_KEY} has unsupported version ${String(value.version)}`);
 
   const store = emptyReadAlongPairsStore();
+  const unreadable = { pairs: {} as Record<string, unknown>, dismissed: {} as Record<string, unknown> };
   for (const [audioId, entry] of Object.entries((value.pairs ?? {}) as Record<string, unknown>)) {
     const parsedEntry = parseEntry(entry);
     if (isPositiveInt(Number(audioId)) && parsedEntry) store.pairs[audioId] = parsedEntry;
+    else unreadable.pairs[audioId] = entry;
   }
   for (const [audioId, ids] of Object.entries((value.dismissed ?? {}) as Record<string, unknown>)) {
     const list = Array.isArray(ids) ? [...new Set(ids.filter(isPositiveInt))] : [];
     if (isPositiveInt(Number(audioId)) && list.length > 0) store.dismissed[audioId] = list;
+    else if (!Array.isArray(ids) || !isPositiveInt(Number(audioId))) unreadable.dismissed[audioId] = ids;
   }
+  if (Object.keys(unreadable.pairs).length > 0 || Object.keys(unreadable.dismissed).length > 0) store.unreadable = unreadable;
   return store;
 }
 
+/** The keys a read set aside, for a warning. */
+export function unreadableKeys(store: ReadAlongPairsStore): string[] {
+  return [...Object.keys(store.unreadable?.pairs ?? {}), ...Object.keys(store.unreadable?.dismissed ?? {}).map((key) => `dismissed:${key}`)];
+}
+
 export function serializeReadAlongPairsStore(store: ReadAlongPairsStore): string {
-  return JSON.stringify(store);
+  const kept = store.unreadable ?? { pairs: {}, dismissed: {} };
+  return JSON.stringify({
+    version: store.version,
+    pairs: { ...kept.pairs, ...store.pairs },
+    dismissed: { ...kept.dismissed, ...store.dismissed },
+  });
 }
 
 export function toReadAlongPair(audiobookBookId: number, entry: ReadAlongPairEntry): ReadAlongPair {

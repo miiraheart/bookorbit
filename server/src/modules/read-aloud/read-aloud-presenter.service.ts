@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type { ReadAloudErrorCode, ReadAloudJob, ReadAloudStageUnit } from '@bookorbit/types';
 import { isReadAloudErrorCode, Permission, READ_ALOUD_ACTIVE_JOB_STATUSES } from '@bookorbit/types';
 
+import type { RequestUser } from '../../common/types/request-user';
 import type { ReadAloudJobRow } from '../../db/schema';
 import { ReadAloudJobRepository, type ReadAloudJobPayload } from './read-aloud-job.repository';
+import { ReadAloudPairedEpub } from './read-aloud-paired-epub';
 
 export type ReadAloudViewer = { id: number; isSuperuser: boolean };
 
@@ -20,7 +22,10 @@ export function canReplaceReadAlong(user: { isSuperuser: boolean; permissions: r
 
 @Injectable()
 export class ReadAloudPresenter {
-  constructor(private readonly jobs: ReadAloudJobRepository) {}
+  constructor(
+    private readonly jobs: ReadAloudJobRepository,
+    @Optional() private readonly pairedEpub?: ReadAloudPairedEpub,
+  ) {}
 
   async present(row: ReadAloudJobRow, viewer: ReadAloudViewer): Promise<ReadAloudJob> {
     const input = row.input as ReadAloudJobPayload;
@@ -29,7 +34,7 @@ export class ReadAloudPresenter {
     const [positions, requesterName, epubBookTitle] = await Promise.all([
       inLine ? this.jobs.queuePositions([row.id]) : Promise.resolve(null),
       this.jobs.findRequesterName(row.requestedByUserId),
-      paired ? this.jobs.findBookTitle(input.epubBookId!) : Promise.resolve(null),
+      paired ? this.pairedEbookTitle(row, input.epubBookId!, viewer) : Promise.resolve(null),
     ]);
     const queuePosition = positions?.get(row.id) ?? null;
     const stageDetail =
@@ -74,6 +79,17 @@ export class ReadAloudPresenter {
       expiresAt: row.status === 'awaiting_review' ? (row.expiresAt?.toISOString() ?? null) : null,
       retryableUntil: row.status === 'failed' ? (row.workExpiresAt?.toISOString() ?? null) : null,
     };
+  }
+
+  /**
+   * The requester chose that ebook and a job only runs while they can reach it; anyone else sees the
+   * title only when they may open the ebook themselves.
+   */
+  private async pairedEbookTitle(row: ReadAloudJobRow, ebookBookId: number, viewer: ReadAloudViewer): Promise<string | null> {
+    const requester = row.requestedByUserId != null && row.requestedByUserId === viewer.id;
+    const user = 'permissions' in viewer ? (viewer as RequestUser) : null;
+    const canOpen = requester || (user !== null && this.pairedEpub ? await this.pairedEpub.canOpen(ebookBookId, user).catch(() => false) : false);
+    return canOpen ? this.jobs.findBookTitle(ebookBookId) : null;
   }
 
   private errorCode(value: string | null): ReadAloudErrorCode | null {

@@ -30,4 +30,8 @@ export class AcceptExactDto implements AcceptExactRequest {
   @IsInt()
   @IsPositive()
   libraryId?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
 }

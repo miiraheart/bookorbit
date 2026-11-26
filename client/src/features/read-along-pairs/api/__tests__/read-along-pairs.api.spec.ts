@@ -5,6 +5,7 @@ import {
   deleteReadAlongFile,
   dismissCandidate,
   fetchCandidates,
+  fetchPairedAudiobooks,
   listReadAlong,
   pairEbook,
   undismissCandidate,
@@ -89,6 +90,22 @@ describe('read-along pairs API', () => {
     )
     expect(api).toHaveBeenNthCalledWith(2, '/api/v1/read-aloud/pairs/accept-exact', expect.objectContaining({ method: 'POST', body: '{}' }))
     expect(api).toHaveBeenNthCalledWith(3, '/api/v1/books/files/9', { method: 'DELETE' })
+  })
+
+  it('counts exact matches with a dry run and looks up the audiobooks paired with an ebook', async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(ok({ paired: 2, skipped: 1 }))
+      .mockResolvedValueOnce(ok({ audiobooks: [] }))
+
+    await expect(acceptExact(14, true)).resolves.toEqual({ paired: 2, skipped: 1 })
+    await expect(fetchPairedAudiobooks(2614)).resolves.toEqual({ audiobooks: [] })
+
+    expect(api).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/read-aloud/pairs/accept-exact',
+      expect.objectContaining({ method: 'POST', body: '{"libraryId":14,"dryRun":true}' }),
+    )
+    expect(api).toHaveBeenNthCalledWith(2, '/api/v1/books/2614/read-aloud/paired-audiobooks', undefined)
   })
 
   it('throws on a refused pair', async () => {

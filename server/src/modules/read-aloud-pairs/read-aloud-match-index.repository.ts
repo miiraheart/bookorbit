@@ -27,6 +27,9 @@ export type ReadAlongCorpusRow = {
   authors: string[];
   has_audio: boolean;
   audio_seconds: number | null;
+  /** Audio content file names and their hashes ('' when unknown), in the same order. */
+  audio_files?: string[];
+  audio_hashes?: string[];
   epub_file_id: number | null;
   has_overlay: boolean;
 };
@@ -74,7 +77,7 @@ export class ReadAloudMatchIndexRepository {
           SELECT a.name FROM book_authors ba JOIN authors a ON a.id = ba.author_id
           WHERE ba.book_id = b.id ORDER BY ba.display_order, a.id
         ) AS authors,
-        f.has_audio, f.audio_seconds, f.epub_file_id, f.has_overlay
+        f.has_audio, f.audio_seconds, f.audio_files, f.audio_hashes, f.epub_file_id, f.has_overlay
       FROM books b
       JOIN libraries l ON l.id = b.library_id
       LEFT JOIN book_metadata m ON m.book_id = b.id
@@ -82,6 +85,10 @@ export class ReadAloudMatchIndexRepository {
         SELECT
           coalesce(bool_or(lower(bf.format) = ANY(${AUDIO_FORMATS}::text[])), false) AS has_audio,
           sum(bf.duration_seconds) FILTER (WHERE lower(bf.format) = ANY(${AUDIO_FORMATS}::text[]))::float8 AS audio_seconds,
+          coalesce(array_agg(regexp_replace(bf.absolute_path, '^.*/', '') ORDER BY bf.sort_order NULLS LAST, bf.id)
+            FILTER (WHERE lower(bf.format) = ANY(${AUDIO_FORMATS}::text[])), ARRAY[]::text[]) AS audio_files,
+          coalesce(array_agg(coalesce(bf.file_hash, '') ORDER BY bf.sort_order NULLS LAST, bf.id)
+            FILTER (WHERE lower(bf.format) = ANY(${AUDIO_FORMATS}::text[])), ARRAY[]::text[]) AS audio_hashes,
           (array_agg(bf.id ORDER BY bf.sort_order NULLS LAST, bf.id)
             FILTER (WHERE lower(bf.format) = 'epub' AND NOT bf.media_overlay_available))[1] AS epub_file_id,
           coalesce(bool_or(lower(bf.format) = 'epub' AND bf.media_overlay_available), false) AS has_overlay

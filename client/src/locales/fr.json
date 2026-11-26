@@ -7254,7 +7254,19 @@
           "indexedMany": "Fichiers {count} {format} indexés"
         },
         "readAloud": {
-          "findEbook": "Trouver le livre numérique"
+          "findEbook": "Trouver le livre numérique",
+          "dialog": {
+            "fromLibrary": "de {library}"
+          },
+          "job": {
+            "textFrom": "Texte de {title}"
+          },
+          "errors": {
+            "pairChanged": "Ce livre audio a été associé à un autre livre numérique après la création de cette lecture synchronisée. Choisissez Publier quand même pour l'ajouter, ou supprimez-la."
+          },
+          "review": {
+            "publishAnyway": "Publier quand même"
+          }
         }
       },
       "highlights": {
@@ -12910,7 +12922,8 @@
         "stale": "Ce livre audio a une lecture synchronisée faite avec un autre livre numérique. La refaire ?",
         "dismissPrevious": "Ne plus suggérer le livre numérique précédent",
         "language": "Langue",
-        "languageAuto": "Automatique"
+        "languageAuto": "Automatique",
+        "hiddenEbook": "un livre numérique auquel vous n'avez pas accès"
       },
       "actions": {
         "pair": "Associer",
@@ -12948,6 +12961,11 @@
         "dismiss": "Ce livre numérique n'a pas pu être mis à jour.",
         "acceptExact": "Les correspondances exactes n'ont pas pu être associées.",
         "deleteReadAlong": "La lecture synchronisée n'a pas pu être supprimée."
+      },
+      "ebookMenu": {
+        "heading": "Association au livre audio",
+        "open": "Ouvrir le livre audio {title}",
+        "readAlong": "Lecture synchronisée"
       }
     }
   },

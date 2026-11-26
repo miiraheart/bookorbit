@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { ReadAlongPair } from '@bookorbit/types';
 
@@ -10,13 +10,25 @@ import {
   READ_ALOUD_PAIRS_SETTING_KEY,
   serializeReadAlongPairsStore,
   toReadAlongPair,
+  unreadableKeys,
   type ReadAlongPairEntry,
   type ReadAlongPairsStore,
 } from './read-aloud-pairs-store';
 
 type Db = NodePgDatabase<typeof schema>;
 
-export type ReadAlongPairFileRow = { id: number; bookId: number; format: string | null; role: string; fileHash: string | null };
+export type ReadAlongPairFileRow = {
+  id: number;
+  bookId: number;
+  format: string | null;
+  role: string;
+  fileHash: string | null;
+  mediaOverlayAvailable: boolean;
+  libraryId?: number | null;
+};
+
+/** Where a paired ebook record is now: its library, or the book it was merged into when it is gone. */
+export type ReadAlongPairOrigin = { libraryId: number | null; mergedInto: number | null };
 
 export type ResolvedReadAlongPair = { pair: ReadAlongPair; state: 'ok' | 'needs_attention'; repaired: boolean };
 
@@ -26,32 +38,54 @@ const fileColumns = {
   format: schema.bookFiles.format,
   role: schema.bookFiles.role,
   fileHash: schema.bookFiles.fileHash,
+  mediaOverlayAvailable: schema.bookFiles.mediaOverlayAvailable,
 };
 
 export function isPairableEpubFile(file: ReadAlongPairFileRow | undefined, ebookBookId: number): boolean {
-  return file !== undefined && file.bookId === ebookBookId && file.format?.toLowerCase() === 'epub' && file.role === 'content';
+  return (
+    file !== undefined &&
+    file.bookId === ebookBookId &&
+    file.format?.toLowerCase() === 'epub' &&
+    file.role === 'content' &&
+    !file.mediaOverlayAvailable
+  );
 }
 
-/** The same book's copy first, then the lowest book and file id, so a hash shared by many books resolves the same way every time. */
+/**
+ * The same book's copy first, then the lowest book and file id, so a hash shared by many books
+ * resolves the same way every time. Another book only counts in the paired ebook's own library,
+ * or, once that record was merged away, the book it was merged into: a hash never moves a pair
+ * into a library nobody chose.
+ */
 export function pickFileByHash(
   rows: readonly ReadAlongPairFileRow[],
   entry: ReadAlongPairEntry,
   audiobookBookId: number,
+  origin: ReadAlongPairOrigin = { libraryId: null, mergedInto: null },
 ): ReadAlongPairFileRow | null {
   if (!entry.fileHash) return null;
+  const allowed = (row: ReadAlongPairFileRow) =>
+    row.bookId === entry.ebookBookId || (origin.libraryId !== null ? row.libraryId === origin.libraryId : row.bookId === origin.mergedInto);
   const matches = rows
-    .filter((row) => row.fileHash === entry.fileHash && row.bookId !== audiobookBookId && isPairableEpubFile(row, row.bookId))
+    .filter((row) => row.fileHash === entry.fileHash && row.bookId !== audiobookBookId && isPairableEpubFile(row, row.bookId) && allowed(row))
     .sort((a, b) => Number(b.bookId === entry.ebookBookId) - Number(a.bookId === entry.ebookBookId) || a.bookId - b.bookId || a.id - b.id);
   return matches[0] ?? null;
 }
 
 @Injectable()
 export class ReadAloudPairsRepository {
+  private readonly logger = new Logger(ReadAloudPairsRepository.name);
+
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async read(): Promise<ReadAlongPairsStore> {
     const row = await this.db.query.appSettings.findFirst({ where: eq(schema.appSettings.key, READ_ALOUD_PAIRS_SETTING_KEY) });
-    return parseReadAlongPairsStore(row?.value);
+    const store = parseReadAlongPairsStore(row?.value);
+    const skipped = unreadableKeys(store);
+    if (skipped.length > 0) {
+      this.logger.warn(`[read_aloud.pairs] [skip] keys=${skipped.join(',')} - unreadable entries kept as stored and left out`);
+    }
+    return store;
   }
 
   /** Read-modify-write under an advisory lock, which also covers the first write when the row does not exist yet. */
@@ -80,16 +114,39 @@ export class ReadAloudPairsRepository {
 
   private async findEpubFilesByHash(hashes: readonly string[]): Promise<ReadAlongPairFileRow[]> {
     if (hashes.length === 0) return [];
-    return this.db
-      .select(fileColumns)
-      .from(schema.bookFiles)
-      .where(
-        and(
-          inArray(schema.bookFiles.fileHash, [...new Set(hashes)]),
-          sql`lower(${schema.bookFiles.format}) = 'epub'`,
-          eq(schema.bookFiles.role, 'content'),
-        ),
-      );
+    const result = await this.db.execute<{
+      id: number;
+      book_id: number;
+      format: string | null;
+      role: string;
+      file_hash: string | null;
+      library_id: number;
+    }>(sql`
+      SELECT f.id, f.book_id, f.format, f.role, f.file_hash, b.library_id
+      FROM book_files f JOIN books b ON b.id = f.book_id
+      WHERE f.file_hash = ANY(${sql.param([...new Set(hashes)])}::text[])
+        AND lower(f.format) = 'epub' AND f.role = 'content' AND NOT f.media_overlay_available
+    `);
+    return result.rows.map((row) => ({
+      id: row.id,
+      bookId: row.book_id,
+      format: row.format,
+      role: row.role,
+      fileHash: row.file_hash,
+      mediaOverlayAvailable: false,
+      libraryId: row.library_id,
+    }));
+  }
+
+  private async findOrigins(bookIds: readonly number[]): Promise<Map<number, ReadAlongPairOrigin>> {
+    if (bookIds.length === 0) return new Map();
+    const result = await this.db.execute<{ id: number; library_id: number | null; merged_into: number | null }>(sql`
+      SELECT o.id, b.library_id, m.target_book_id AS merged_into
+      FROM unnest(${sql.param([...new Set(bookIds)])}::int[]) AS o(id)
+      LEFT JOIN books b ON b.id = o.id
+      LEFT JOIN book_merges m ON m.source_book_id = o.id
+    `);
+    return new Map(result.rows.map((row) => [row.id, { libraryId: row.library_id, mergedInto: row.merged_into }]));
   }
 
   /**
@@ -107,11 +164,15 @@ export class ReadAloudPairsRepository {
 
     const files = new Map((await this.findFiles(entries.map(([, entry]) => entry.ebookFileId))).map((file) => [file.id, file]));
     const stale = entries.filter(([, entry]) => !isPairableEpubFile(files.get(entry.ebookFileId), entry.ebookBookId));
-    const hashRows = await this.findEpubFilesByHash(stale.map(([, entry]) => entry.fileHash).filter((hash): hash is string => Boolean(hash)));
+    const hashed = stale.filter(([, entry]) => Boolean(entry.fileHash));
+    const [hashRows, origins] = await Promise.all([
+      this.findEpubFilesByHash(hashed.map(([, entry]) => entry.fileHash!)),
+      this.findOrigins(hashed.map(([, entry]) => entry.ebookBookId)),
+    ]);
 
     const repairs = new Map<number, ReadAlongPairFileRow>();
     for (const [id, entry] of stale) {
-      const found = pickFileByHash(hashRows, entry, id);
+      const found = pickFileByHash(hashRows, entry, id, origins.get(entry.ebookBookId));
       if (found) repairs.set(id, found);
     }
     const applied = repairs.size > 0 ? await this.applyRepairs(entries, repairs) : new Map<number, ReadAlongPairEntry>();

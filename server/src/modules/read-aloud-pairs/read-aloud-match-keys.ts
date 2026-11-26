@@ -1,11 +1,13 @@
 import { ISO_639_2_TO_1, languageSubtagOf, normalizeWorkToken, type ReadAlongLanguageMatch, type ReadAlongMatchFlag } from '@bookorbit/types';
 
 import { AUDIO_TITLE_MARKERS } from '../book-duplicates/book-duplicate-normalize';
+import { audioFileFlags, DRAMATIZED_PATTERN, PART_OF_PATTERN } from './read-aloud-match-files';
 
 export type ReadAlongTitleKeys = {
   full: string | null;
   head: string | null;
   tail: string | null;
+  joined: string | null;
   hasSubtitle: boolean;
 };
 
@@ -20,10 +22,11 @@ const BRACKETED_PATTERN = /\([^)]*\)|\[[^\]]*\]/g;
 const LEADING_SERIES_BOOK_PATTERN = /^.*\bbook\s+\d+(\.\d+)?\s*-\s*/i;
 const TRAILING_SERIES_BOOK_PATTERN = /\s+-\s+[^:]*\bbook\s+\d+(\.\d+)?\s*$/i;
 
-const OMNIBUS_PATTERN = /omnibus|box ?set|bundle|collection|trilogy|books? \d+ ?- ?\d+/i;
-const PART_OF_PATTERN = /part \d+ of \d+|\(\d+ of \d+\)/i;
-const DRAMATIZED_PATTERN = /dramati[sz]ed|full cast|graphic ?audio/i;
+const OMNIBUS_PATTERN = /omnibus|box ?set|bundle|collection|books? \d+ ?- ?\d+/i;
+const TRILOGY_PATTERN = /\btrilogy\b/i;
+const SINGLE_VOLUME_PATTERN = /\bbook\s+(?:\d+|[ivx]+)\b(?!\s*-\s*\d)/i;
 const SUMMARY_LIBRARY_PATTERN = /blinkist|summary/i;
+const SUMMARY_TITLE_PATTERN = /^summary of\b|summary guide/i;
 const DRAMATIZED_AUTHOR_PATTERN = /graphic ?aud|full cast/i;
 const NON_PERSON_AUTHOR_PATTERN = /graphic ?aud|full cast|^unknown( artist)?$|^various|audio ?book collection|published by/i;
 const NAME_SUFFIXES = new Set(['phd', 'ph', 'md', 'dr', 'lpc', 'lcsw', 'psyd', 'and', 'jr', 'sr', 'mr', 'mrs', 'ms']);
@@ -59,13 +62,17 @@ export function cleanReadAlongTitle(title: string): string {
     .trim();
 }
 
-/** The full title only; the subtitle column often holds a series label, so it only blocks head matches. */
+/**
+ * The full title, plus the title joined with its subtitle for a side that keeps "Title: Sub" in one
+ * field. The subtitle column often holds a series label, so on its own it only blocks head matches.
+ */
 export function readAlongTitleKeys(title: string | null | undefined, subtitle?: string | null): ReadAlongTitleKeys {
   const cleaned = cleanReadAlongTitle(title ?? '');
   const colon = cleaned.indexOf(':');
   const head = colon >= 0 ? key(cleaned.slice(0, colon)) : null;
   const tail = colon >= 0 ? key(cleaned.slice(colon + 1)) : null;
-  return { full: key(cleaned), head, tail, hasSubtitle: Boolean(tail) || Boolean(subtitle?.trim()) };
+  const joined = subtitle?.trim() ? key(cleanReadAlongTitle(`${title ?? ''} ${subtitle}`)) : null;
+  return { full: key(cleaned), head, tail, joined, hasSubtitle: Boolean(tail) || Boolean(subtitle?.trim()) };
 }
 
 function trigrams(value: string): Map<string, number> {
@@ -101,21 +108,30 @@ function headMatches(withSubtitle: ReadAlongTitleKeys, bare: ReadAlongTitleKeys)
 export function compareReadAlongTitles(left: ReadAlongTitleKeys, right: ReadAlongTitleKeys): ReadAlongTitleMatch | null {
   if (!left.full || !right.full) return null;
   if (left.full === right.full) return 'full';
+  if ((left.joined && left.joined === right.full) || (right.joined && right.joined === left.full)) return 'full';
   if (headMatches(left, right) || headMatches(right, left)) return 'head';
   if (left.tail && left.tail === right.full && !right.hasSubtitle) return 'head';
   if (right.tail && right.tail === left.full && !left.hasSubtitle) return 'head';
   return titleSimilarity(left.full, right.full) >= FUZZY_TITLE_THRESHOLD ? 'fuzzy' : null;
 }
 
-/** Word tokens in sorted order, so "Gibson, Lindsay C." and "Lindsay C. Gibson" agree. */
-export function personTokens(name: string | null | undefined): string[] {
-  return (name ?? '')
+function nameTokens(name: string): string[] {
+  return name
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .split(/[^\p{L}]+/u)
-    .filter((token) => token.length > 1 && !NAME_SUFFIXES.has(token))
-    .sort();
+    .filter((token) => token.length > 1 && !NAME_SUFFIXES.has(token));
+}
+
+/** Word tokens in sorted order, so "Gibson, Lindsay C." and "Lindsay C. Gibson" agree. */
+export function personTokens(name: string | null | undefined): string[] {
+  return nameTokens(name ?? '').sort();
+}
+
+/** The family name: the last word, or the part before a comma in "Gibson, Lindsay C.". */
+export function personSurname(name: string): string | null {
+  return nameTokens(name.split(',')[0] ?? '').at(-1) ?? null;
 }
 
 export function personTokenKey(name: string | null | undefined): string {
@@ -180,7 +196,7 @@ export function compareReadAlongLanguages(left: ReadAlongLanguageSide, right: Re
   const a = resolveReadAlongLanguage(left);
   const b = resolveReadAlongLanguage(right);
   if (!a.code || !b.code) return 'unknown';
-  if (a.code !== b.code) return 'conflict';
+  if (a.code !== b.code) return a.fromMetadata && b.fromMetadata ? 'conflict' : 'unknown';
   return a.fromMetadata && b.fromMetadata ? 'equal' : 'prior';
 }
 
@@ -191,21 +207,30 @@ export type ReadAlongFlagSource = {
   libraryName?: string | null;
   durationSeconds?: number | null;
   authors?: readonly string[];
+  audioFiles?: readonly string[];
+  audioFileAliases?: readonly string[];
 };
+
+/** "Trilogy" names an omnibus unless the title is one book of it, as in "Locked Tomb Trilogy, Book 2". */
+function isOmnibusTitle(title: string): boolean {
+  return OMNIBUS_PATTERN.test(title) || (TRILOGY_PATTERN.test(title) && !SINGLE_VOLUME_PATTERN.test(title));
+}
 
 /**
  * Read from the raw title and subtitle, before markers and brackets are stripped. Omnibus reads the
- * title only: the subtitle column holds series labels such as "The Farseer Trilogy, Book 1".
+ * title only: the subtitle column holds series labels such as "The Farseer Trilogy, Book 1". An
+ * audiobook's file names are read too, since a part or a whole series often hides behind a clean title.
  */
 export function readAlongFlags(side: ReadAlongFlagSource, kind: 'audio' | 'epub'): ReadAlongMatchFlag[] {
   const text = [side.title ?? '', side.subtitle ?? ''].join(' ');
   const flags: ReadAlongMatchFlag[] = [];
   if (side.abridged === true || (/\babridged\b/i.test(text) && !/\bunabridged\b/i.test(text))) flags.push('abridged');
   const shortAudio = kind === 'audio' && side.durationSeconds != null && side.durationSeconds > 0 && side.durationSeconds < SUMMARY_MAX_SECONDS;
-  if (SUMMARY_LIBRARY_PATTERN.test(side.libraryName ?? '') || shortAudio) flags.push('summary');
-  if (OMNIBUS_PATTERN.test(side.title ?? '')) flags.push(kind === 'audio' ? 'omnibus_audio' : 'omnibus_epub');
+  if (SUMMARY_LIBRARY_PATTERN.test(side.libraryName ?? '') || SUMMARY_TITLE_PATTERN.test(side.title ?? '') || shortAudio) flags.push('summary');
+  if (isOmnibusTitle(side.title ?? '')) flags.push(kind === 'audio' ? 'omnibus_audio' : 'omnibus_epub');
   if (kind === 'audio' && PART_OF_PATTERN.test(text)) flags.push('part_of');
   const dramatizedAuthor = (side.authors ?? []).some((name) => DRAMATIZED_AUTHOR_PATTERN.test(name));
   if (kind === 'audio' && (DRAMATIZED_PATTERN.test(text) || dramatizedAuthor)) flags.push('dramatized');
-  return flags;
+  if (kind === 'audio' && side.audioFiles?.length) flags.push(...audioFileFlags(side.title ?? '', side.audioFiles, side.audioFileAliases));
+  return [...new Set(flags)];
 }

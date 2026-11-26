@@ -7,6 +7,8 @@ import {
   type ReadAlongListResponse,
   type ReadAlongListSummary,
   type ReadAlongMatchTier,
+  type ReadAlongPair,
+  type ReadAlongPairedAudiobooksResponse,
   type ReadAlongPairStatus,
   type ReadAlongRow,
 } from '@bookorbit/types';
@@ -99,13 +101,15 @@ export class ReadAloudPairListService {
     if (!audio) throw new BadRequestException('This book has no audiobook file');
     const [store, [resolved]] = await Promise.all([this.pairs.read(), this.pairs.resolvePairs([bookId])]);
     const dismissed = dismissedFor(store, bookId);
+    const pair = visiblePair(view, resolved?.pair);
 
     const suggested = view.candidatesFor(audio, { dismissedEbookBookIds: dismissed });
     const searched = options.q ? view.search(audio, options.q, dismissed) : [];
     const seen = new Set(suggested.flatMap(coveredIds));
     const candidates = [...suggested, ...searched.filter((candidate) => !coveredIds(candidate).some((id) => seen.has(id)))];
     return {
-      pair: resolved?.pair ?? null,
+      pair,
+      ...(resolved && !pair ? { pairHidden: true } : {}),
       pairState: resolved?.state ?? null,
       candidates,
       dismissedEbookBookIds: dismissed,
@@ -113,8 +117,11 @@ export class ReadAloudPairListService {
     };
   }
 
-  /** Pairs each exact match in libraries this user may edit. Starts no job: generating stays a choice per book. */
-  async acceptExact(libraryId: number | undefined, user: RequestUser): Promise<AcceptExactResponse> {
+  /**
+   * Pairs each exact match in libraries this user may edit. Starts no job: generating stays a choice
+   * per book. A dry run counts the same pairs against the current store and writes nothing.
+   */
+  async acceptExact(libraryId: number | undefined, user: RequestUser, dryRun = false): Promise<AcceptExactResponse> {
     const [view, editable] = await Promise.all([this.index.forUser(user), this.libraries.findEditableLibraryIds(user)]);
     const editableIds = new Set(editable);
     const scope = view.audio.filter((book) => editableIds.has(book.libraryId) && (libraryId === undefined || book.libraryId === libraryId));
@@ -130,7 +137,7 @@ export class ReadAloudPairListService {
       const language = pairLanguage(view, audio.bookId, best.ebookBookId, null);
       return [{ audioId: audio.bookId, entry: buildPairEntry({ ebookBookId: best.ebookBookId, file, user, source: 'accepted', language }) }];
     });
-    const paired = await this.pairs.update((store: ReadAlongPairsStore) => {
+    const apply = (store: ReadAlongPairsStore) => {
       let count = 0;
       for (const { audioId, entry } of entries) {
         if (store.pairs[String(audioId)] || dismissedFor(store, audioId).includes(entry.ebookBookId)) continue;
@@ -138,9 +145,34 @@ export class ReadAloudPairListService {
         count += 1;
       }
       return count;
-    });
+    };
+    if (dryRun) {
+      const paired = apply(await this.pairs.read());
+      return { paired, skipped: targets.length - paired };
+    }
+    const paired = await this.pairs.update(apply);
     this.index.invalidate();
     return { paired, skipped: targets.length - paired };
+  }
+
+  /** The audiobooks paired with this ebook that the user may open too, with the read-along made from it, if any. */
+  async pairedAudiobooks(ebookBookId: number, user: RequestUser): Promise<ReadAlongPairedAudiobooksResponse> {
+    await this.books.verifyBookAccess(ebookBookId, user);
+    const resolved = (await this.pairs.resolvePairs()).filter(({ pair, state }) => state === 'ok' && pair.ebookBookId === ebookBookId);
+    if (resolved.length === 0) return { audiobooks: [] };
+    const view = await this.index.forUser(user);
+    const visible = resolved.flatMap(({ pair }) => {
+      const audio = view.findAudio(pair.audiobookBookId);
+      return audio ? [{ pair, audio }] : [];
+    });
+    const outputs = await this.files.findReadAlongOutputs(visible.map(({ pair }) => pair.audiobookBookId));
+    return {
+      audiobooks: visible.map(({ pair, audio }) => {
+        const latest = outputs.filter((output) => output.bookId === pair.audiobookBookId).at(-1);
+        const fromPair = latest && (latest.epubFileId === null || madeFromPair(latest, pair));
+        return { bookId: audio.bookId, title: audio.title, readAlongFileId: fromPair ? latest.fileId : null };
+      }),
+    };
   }
 
   private async evaluate(view: ReadAlongIndexView, audio: readonly ReadAlongIndexedAudio[]): Promise<Evaluated[]> {
@@ -159,6 +191,7 @@ export class ReadAloudPairListService {
     return audio.map((book) => {
       const candidates = view.candidatesFor(book, { dismissedEbookBookIds: dismissedFor(store, book.bookId) });
       const resolvedPair = pairById.get(book.bookId);
+      const pair = visiblePair(view, resolvedPair?.pair);
       return {
         audio: book,
         row: {
@@ -171,7 +204,8 @@ export class ReadAloudPairListService {
             language: book.language ?? null,
           },
           status: statusOf(resolvedPair, candidates),
-          pair: resolvedPair?.pair ?? null,
+          pair,
+          ...(resolvedPair && !pair ? { pairHidden: true } : {}),
           best: candidates[0] ?? null,
           candidateCount: candidates.length,
           readAlong: readAlongOf(outputsById.get(book.bookId) ?? [], resolvedPair),
@@ -180,6 +214,11 @@ export class ReadAloudPairListService {
       };
     });
   }
+}
+
+/** A pair to an ebook this user cannot open is reported as paired, without naming that ebook. */
+function visiblePair(view: ReadAlongIndexView, pair: ReadAlongPair | undefined): ReadAlongPair | null {
+  return pair && view.isVisible(pair.ebookBookId) ? pair : null;
 }
 
 function coveredIds(candidate: ReadAlongCandidate): number[] {

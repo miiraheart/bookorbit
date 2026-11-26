@@ -22,12 +22,13 @@ const empirePair: ReadAlongPairEntry = {
   pairedBy: 7,
 };
 
-function setup(options: { rows?: ReadAlongCorpusRow[]; editable?: number[]; outputs?: ReadAlongOutputFile[] } = {}) {
+function setup(options: { rows?: ReadAlongCorpusRow[]; editable?: number[]; outputs?: ReadAlongOutputFile[]; hidden?: number[] } = {}) {
   const rows = options.rows ?? ROWS;
   const store = emptyReadAlongPairsStore();
   store.pairs['2254'] = empirePair;
   const pairs = fakePairsRepository(store);
-  const view = new ReadAlongIndexView(buildReadAlongCorpus(rows), new Set(rows.map((row) => row.id)));
+  const hidden = new Set(options.hidden ?? []);
+  const view = new ReadAlongIndexView(buildReadAlongCorpus(rows), new Set(rows.map((row) => row.id).filter((id) => !hidden.has(id))));
   const index = { forUser: vi.fn(() => Promise.resolve(view)), invalidate: vi.fn() };
   const files = {
     findBookFiles: vi.fn((ids: number[]) => Promise.resolve(ids.map((id) => epubFile(id * 10, id)))),
@@ -149,6 +150,14 @@ describe('ReadAloudPairListService.acceptExact', () => {
     expect(await setup().service.acceptExact(16, EDITOR)).toEqual({ paired: 0, skipped: 0 });
   });
 
+  it('counts on a dry run with the same rules and writes nothing', async () => {
+    const { service, pairs, index } = setup();
+    expect(await service.acceptExact(undefined, EDITOR, true)).toEqual({ paired: 1, skipped: 0 });
+    expect(await setup({ editable: [16] }).service.acceptExact(undefined, EDITOR, true)).toEqual({ paired: 0, skipped: 0 });
+    expect(pairs.state.writes).toBe(0);
+    expect(index.invalidate).not.toHaveBeenCalled();
+  });
+
   it('skips a row paired or dismissed by someone else after it was read', async () => {
     const { service, pairs } = setup();
     const original = pairs.repo.update;
@@ -158,5 +167,39 @@ describe('ReadAloudPairListService.acceptExact', () => {
     };
     expect(await service.acceptExact(undefined, EDITOR)).toEqual({ paired: 0, skipped: 1 });
     expect(pairs.state.store.pairs['2238']!.ebookBookId).toBe(2712);
+  });
+});
+
+describe('ReadAloudPairListService with an ebook the user cannot open', () => {
+  it('reports the pair without naming the hidden ebook', async () => {
+    const { service } = setup({ hidden: [2699] });
+    const row = (await service.list({}, EDITOR)).items.find((item) => item.audiobook.bookId === 2254)!;
+    expect(row).toMatchObject({ status: 'paired', pair: null, pairHidden: true });
+    expect(await service.candidates(2254, {}, EDITOR)).toMatchObject({ pair: null, pairHidden: true, pairState: 'ok' });
+  });
+});
+
+describe('ReadAloudPairListService.pairedAudiobooks', () => {
+  const output = (epubFileId: number | null): ReadAlongOutputFile => ({
+    bookId: 2254,
+    fileId: 9,
+    filename: 'Empire.readaloud.epub',
+    epubFileId,
+    epubHash: null,
+  });
+
+  it('lists the audiobooks paired with an ebook and the read-along made from it', async () => {
+    expect(await setup().service.pairedAudiobooks(2699, EDITOR)).toEqual({
+      audiobooks: [{ bookId: 2254, title: 'Empire of Silence', readAlongFileId: null }],
+    });
+    expect((await setup({ outputs: [output(26990)] }).service.pairedAudiobooks(2699, EDITOR)).audiobooks[0]!.readAlongFileId).toBe(9);
+    expect((await setup({ outputs: [output(1)] }).service.pairedAudiobooks(2699, EDITOR)).audiobooks[0]!.readAlongFileId).toBeNull();
+  });
+
+  it('checks the ebook and leaves out audiobooks the user cannot open', async () => {
+    const { service, books } = setup({ hidden: [2254] });
+    expect(await service.pairedAudiobooks(2699, EDITOR)).toEqual({ audiobooks: [] });
+    expect(books.verifyBookAccess).toHaveBeenCalledWith(2699, EDITOR);
+    expect(await setup().service.pairedAudiobooks(2614, EDITOR)).toEqual({ audiobooks: [] });
   });
 });

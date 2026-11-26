@@ -197,7 +197,7 @@ describe('read-along series and copies', () => {
     expect(readAlongStatus(candidates)).toBe('ambiguous');
   });
 
-  it('downgrades two distinct exact works to likely and reports ambiguous', () => {
+  it('folds copies numbered 3.5 and 4 in the same series into one exact work', () => {
     const candidates = rankReadAlongCandidates(acofas, [
       ebook({
         bookId: 2608,
@@ -208,15 +208,17 @@ describe('read-along series and copies', () => {
       }),
       ebook({
         bookId: 6022,
+        libraryName: 'Readarr - English (legacy)',
         title: 'A Court of Frost and Starlight',
         authors: ['Sarah J. Maas'],
         seriesName: 'A Court of Thorns and Roses',
         seriesIndex: '3.5',
       }),
     ]);
-    expect(candidates.map((candidate) => candidate.tier)).toEqual(['likely', 'likely']);
+    expect(candidates.map((candidate) => candidate.tier)).toEqual(['exact']);
     expect(candidates[0].ebookBookId).toBe(2608);
-    expect(readAlongStatus(candidates)).toBe('ambiguous');
+    expect(candidates[0].otherCopies.map((copy) => copy.ebookBookId)).toEqual([6022]);
+    expect(readAlongStatus(candidates)).toBe('suggested');
   });
 
   it('reports none without candidates', () => {

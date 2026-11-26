@@ -6,6 +6,7 @@ import type {
   ReadAlongDismissalsResponse,
   ReadAlongListResponse,
   ReadAlongMatchTier,
+  ReadAlongPairedAudiobooksResponse,
   ReadAlongPairStatus,
   UnpairEbookResponse,
 } from '@bookorbit/types'
@@ -64,8 +65,14 @@ export function undismissCandidate(bookId: number, ebookBookId: number): Promise
   return apiJson(`/api/v1/books/${bookId}/read-aloud/candidates/undismiss`, jsonBody('POST', { ebookBookId }), `${ERRORS}.dismiss`)
 }
 
-export function acceptExact(libraryId?: number): Promise<AcceptExactResponse> {
-  return apiJson('/api/v1/read-aloud/pairs/accept-exact', jsonBody('POST', libraryId === undefined ? {} : { libraryId }), `${ERRORS}.acceptExact`)
+/** `dryRun` counts what the server would pair, with the same rules, and pairs nothing. */
+export function acceptExact(libraryId?: number, dryRun = false): Promise<AcceptExactResponse> {
+  const body = { ...(libraryId === undefined ? {} : { libraryId }), ...(dryRun ? { dryRun } : {}) }
+  return apiJson('/api/v1/read-aloud/pairs/accept-exact', jsonBody('POST', body), `${ERRORS}.acceptExact`)
+}
+
+export function fetchPairedAudiobooks(ebookBookId: number): Promise<ReadAlongPairedAudiobooksResponse> {
+  return apiJson(`/api/v1/books/${ebookBookId}/read-aloud/paired-audiobooks`, undefined, `${ERRORS}.candidates`)
 }
 
 /** The same file delete the Files tab uses; it needs the delete-books permission on the server. */

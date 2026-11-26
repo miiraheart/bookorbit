@@ -101,11 +101,19 @@ export class ReadAloudPairedEpub {
     }
   }
 
+  /** A pair store that cannot be read counts as changed, so a person decides instead of a 500 after hours of work. */
   async pairChanged(row: Pick<ReadAloudJobRow, 'bookId' | 'input'>): Promise<boolean> {
     const input = row.input as ReadAloudJobPayload;
     if (input.epubBookId == null) return false;
-    const [stored] = await this.pairs.resolvePairs([row.bookId]);
-    return !jobMatchesPair(input, stored?.pair ?? null);
+    try {
+      const [stored] = await this.pairs.resolvePairs([row.bookId]);
+      return !jobMatchesPair(input, stored?.pair ?? null);
+    } catch (error) {
+      this.logger.warn(
+        `[read_aloud.paired_epub] [fail] bookId=${row.bookId} error="${sanitizeLogValue(errorMessage(error))}" - pairs unreadable, treated as changed`,
+      );
+      return true;
+    }
   }
 
   /** Refuses with `pair_changed` when the audiobook was paired with another ebook since, unless the person publishes anyway. */
@@ -130,7 +138,7 @@ export class ReadAloudPairedEpub {
     return { pair, file, folderPath: placement.folderPath, libraryName: placement.libraryName };
   }
 
-  private async canOpen(bookId: number, user: RequestUser): Promise<boolean> {
+  async canOpen(bookId: number, user: RequestUser): Promise<boolean> {
     try {
       await this.books.verifyBookAccess(bookId, user);
       return true;

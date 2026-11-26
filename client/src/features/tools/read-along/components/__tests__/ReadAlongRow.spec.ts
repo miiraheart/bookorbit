@@ -80,6 +80,16 @@ describe('ReadAlongRow', () => {
     expect(wrapper.get('[data-testid="read-along-job"]').attributes('href')).toBe('/book/2238?tab=files')
   })
 
+  it('shows a pair to an ebook the user cannot open as paired, without a link', async () => {
+    const wrapper = await mountRow({ status: 'paired', pair: null, pairHidden: true })
+
+    expect(wrapper.get('[data-testid="read-along-paired-hidden"]').text()).toBe(
+      t('tools.readAlong.row.pairedWith', { title: t('tools.readAlong.sheet.hiddenEbook') }),
+    )
+    expect(wrapper.find('[data-testid="read-along-paired-ebook"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="read-along-unpair"]').exists()).toBe(true)
+  })
+
   it('names an audiobook with no candidate', async () => {
     const wrapper = await mountRow({ status: 'none', best: null })
 

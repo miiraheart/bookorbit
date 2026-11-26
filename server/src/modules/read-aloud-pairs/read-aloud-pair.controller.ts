@@ -28,12 +28,17 @@ export class ReadAloudPairController {
   @Post('read-aloud/pairs/accept-exact')
   @HttpCode(HttpStatus.OK)
   acceptExact(@Body() dto: AcceptExactDto, @CurrentUser() user: RequestUser) {
-    return this.list.acceptExact(dto.libraryId, user);
+    return this.list.acceptExact(dto.libraryId, user, dto.dryRun === true);
   }
 
   @Get('books/:bookId/read-aloud/candidates')
   candidates(@Param('bookId', ParseIntPipe) bookId: number, @Query() query: ReadAlongCandidatesQueryDto, @CurrentUser() user: RequestUser) {
     return this.list.candidates(bookId, query, user);
+  }
+
+  @Get('books/:bookId/read-aloud/paired-audiobooks')
+  pairedAudiobooks(@Param('bookId', ParseIntPipe) bookId: number, @CurrentUser() user: RequestUser) {
+    return this.list.pairedAudiobooks(bookId, user);
   }
 
   @Post('books/:bookId/read-aloud/candidates/dismiss')

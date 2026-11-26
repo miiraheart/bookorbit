@@ -16887,7 +16887,8 @@
         "stale": "This audiobook has a read-along made from another ebook. Regenerate it?",
         "dismissPrevious": "Don't suggest the previous ebook again",
         "language": "Language",
-        "languageAuto": "Automatic"
+        "languageAuto": "Automatic",
+        "hiddenEbook": "an ebook you can't open"
       },
       "actions": {
         "pair": "Pair",
@@ -16925,6 +16926,11 @@
         "dismiss": "That ebook couldn't be updated.",
         "acceptExact": "The exact matches couldn't be paired.",
         "deleteReadAlong": "The read-along couldn't be deleted."
+      },
+      "ebookMenu": {
+        "heading": "Audiobook pairing",
+        "open": "Open audiobook {title}",
+        "readAlong": "Read along"
       }
     }
   },

@@ -107,12 +107,45 @@ describe('ReadAloudPresenter with a paired ebook', () => {
     expect(jobs.findBookTitle).toHaveBeenCalledWith(40);
   });
 
+  it('hides the ebook title from a viewer who cannot open that ebook', async () => {
+    const jobs = {
+      findRequesterName: vi.fn().mockResolvedValue('Owner'),
+      findBookTitle: vi.fn().mockResolvedValue('Circe'),
+      queuePositions: vi.fn(),
+    };
+    const other = { ...OWNER, id: 99 };
+    const blocked = { canOpen: vi.fn().mockResolvedValue(false) };
+    const hidden = await new ReadAloudPresenter(jobs as never, blocked as never).present(jobRow({ status: 'completed', input: PAIRED_INPUT }), other);
+    expect(hidden.epubBookTitle).toBeNull();
+    expect(blocked.canOpen).toHaveBeenCalledWith(40, other);
+    expect(jobs.findBookTitle).not.toHaveBeenCalled();
+    const allowed = { canOpen: vi.fn().mockResolvedValue(true) };
+    const shown = await new ReadAloudPresenter(jobs as never, allowed as never).present(jobRow({ status: 'completed', input: PAIRED_INPUT }), other);
+    expect(shown.epubBookTitle).toBe('Circe');
+    const bare = await new ReadAloudPresenter(jobs as never, allowed as never).present(jobRow({ status: 'completed', input: PAIRED_INPUT }), {
+      id: 99,
+      isSuperuser: false,
+    });
+    expect(bare.epubBookTitle).toBeNull();
+  });
+
   it("adds nothing for a job on the book's own EPUB", async () => {
     const jobs = { findRequesterName: vi.fn().mockResolvedValue('Owner'), findBookTitle: vi.fn(), queuePositions: vi.fn() };
     const job = await new ReadAloudPresenter(jobs as never).present(jobRow({ status: 'completed' }), OWNER);
     expect(job).not.toHaveProperty('epubBookTitle');
     expect(job.input).not.toHaveProperty('epubBookId');
     expect(jobs.findBookTitle).not.toHaveBeenCalled();
+  });
+});
+
+describe('ReadAloudPairedEpub with unreadable pairs', () => {
+  const broken = () => new ReadAloudPairedEpub({ resolvePairs: vi.fn().mockRejectedValue(new Error('bad json')) } as never, {} as never, {} as never);
+  const row = jobRow({ status: 'awaiting_review', input: PAIRED_INPUT });
+
+  it('treats the pair as changed, so review and the 409 flow take over', async () => {
+    expect(await broken().pairChanged(row)).toBe(true);
+    await expect(broken().assertPublishable(row, false)).rejects.toMatchObject({ response: { errorCode: 'pair_changed' } });
+    await expect(broken().assertPublishable(row, true)).resolves.toBeUndefined();
   });
 });
 

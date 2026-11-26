@@ -76,8 +76,8 @@ export function useReadAlongList() {
   }
 
   async function countExact(): Promise<number> {
-    const result = await listReadAlong({ status: 'suggested', tier: 'exact', libraryId: libraryId.value, page: 1, pageSize: 1 })
-    return result.total
+    const result = await acceptExact(libraryId.value, true)
+    return result.paired
   }
 
   async function pairAllExact(): Promise<{ paired: number; skipped: number } | null> {

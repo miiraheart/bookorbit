@@ -75,6 +75,7 @@ import type { LinkSeedBook } from '@/features/book/lib/book-link'
 import MoveToLibrarySheet from '@/features/book/components/MoveToLibrarySheet.vue'
 import ResetReadingStateDialog from '@/features/book/components/ResetReadingStateDialog.vue'
 import SendBookDialog from '@/features/email/components/SendBookDialog.vue'
+import PairedAudiobookMenu from '@/features/read-along-pairs/components/PairedAudiobookMenu.vue'
 import AddToCollectionSheet from '@/features/collection/components/AddToCollectionSheet.vue'
 import MetadataScoreBadge from '@/features/metadata-score/components/MetadataScoreBadge.vue'
 import MetadataScoreBreakdown from '@/features/metadata-score/components/MetadataScoreBreakdown.vue'
@@ -1779,6 +1780,7 @@ watch(
                   <Unlink class="size-3.5 shrink-0" aria-hidden="true" />
                   {{ t('book.editions.remove') }}
                 </button>
+                <PairedAudiobookMenu :book-id="book.id" @navigate="moreMenuOpen = false" />
                 <button
                   v-if="hasPermission('library_delete_books')"
                   class="flex w-full items-center gap-2 px-2 py-1.5 text-start rounded-xs text-sm text-destructive hover:bg-destructive/10 transition-colors"

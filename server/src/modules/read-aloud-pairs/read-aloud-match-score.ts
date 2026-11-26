@@ -35,7 +35,7 @@ export type ReadAlongMatchBook = {
   abridged?: boolean | null;
 };
 
-export type ReadAlongAudioBook = ReadAlongMatchBook & { durationSeconds?: number | null };
+export type ReadAlongAudioBook = ReadAlongMatchBook & { durationSeconds?: number | null; audioFiles?: string[]; audioFileAliases?: string[] };
 
 export type ReadAlongEbookBook = ReadAlongMatchBook & {
   fileId: number;
@@ -132,8 +132,7 @@ export function scoreReadAlongCandidate(
   score = Math.max(0, Math.min(100, score));
   if (score < MIN_SCORE && !includeHidden) return null;
 
-  const fullKey = readAlongTitleKeys(ebook.title, ebook.subtitle).full ?? `book:${ebook.bookId}`;
-  const groupKey = [fullKey, authorsKey(ebook.authors)].join('#');
+  const groupKey = title === 'full' ? 'full' : (readAlongTitleKeys(ebook.title, ebook.subtitle).full ?? `book:${ebook.bookId}`);
   const candidate: ReadAlongCandidate = {
     ebookBookId: ebook.bookId,
     ebookFileId: ebook.fileId,
@@ -152,22 +151,44 @@ export function scoreReadAlongCandidate(
   return { ebook, candidate, groupKey };
 }
 
+const TIER_ORDER: Record<ReadAlongMatchTier, number> = { exact: 0, likely: 1, maybe: 2 };
+
+/** The best tier first, then the library: a prior from the English library is as good as a tag elsewhere. */
 function compareCopies(a: Scored, b: Scored): number {
   const languageRank = (value: ReadAlongLanguageMatch) => (value === 'equal' ? 0 : value === 'prior' ? 1 : 2);
   return (
-    languageRank(a.candidate.languageMatch) - languageRank(b.candidate.languageMatch) ||
+    TIER_ORDER[a.candidate.tier] - TIER_ORDER[b.candidate.tier] ||
     libraryRank(a.ebook.libraryName) - libraryRank(b.ebook.libraryName) ||
+    languageRank(a.candidate.languageMatch) - languageRank(b.candidate.languageMatch) ||
     (b.ebook.metadataScore ?? 0) - (a.ebook.metadataScore ?? 0) ||
     Number(a.ebook.hasMediaOverlay ?? false) - Number(b.ebook.hasMediaOverlay ?? false) ||
     b.ebook.bookId - a.ebook.bookId
   );
 }
 
-const TIER_ORDER: Record<ReadAlongMatchTier, number> = { exact: 0, likely: 1, maybe: 2 };
+/**
+ * Series numbering shifts by one when a novella is counted (A Court of Frost and Starlight is 3.5
+ * or 4), so only a larger gap within the same series marks another volume.
+ */
+function sameVolume(a: ReadAlongMatchBook, b: ReadAlongMatchBook): boolean {
+  const left = canonicalSeriesIndex(a.seriesIndex);
+  const right = canonicalSeriesIndex(b.seriesIndex);
+  if (!left || !right) return true;
+  const series = (book: ReadAlongMatchBook) => book.seriesName?.trim().toLowerCase() || null;
+  if (series(a) && series(b) && series(a) !== series(b)) return true;
+  return Math.abs(Number(left) - Number(right)) <= 1;
+}
+
+function sameWork(a: Scored, b: ScoredReadAlongCandidate): boolean {
+  if (a.groupKey !== b.groupKey) return false;
+  const authors = compareAuthors(a.ebook.authors, b.ebook.authors);
+  const sameAuthors = authors === 'overlap' || authorsKey(a.ebook.authors) === authorsKey(b.ebook.authors);
+  return sameAuthors && sameVolume(a.ebook, b.ebook);
+}
 
 /**
- * Copies of one work (same full title, authors and series index; a missing index joins any) fold
- * into the best copy. An exact match only stays exact when it is the one strong work left.
+ * Copies of one work (the audiobook's full title, with or without its subtitle, or else the same
+ * full title; a shared author; series indexes no more than one apart) fold into the best copy. An exact match only stays exact when it is the one strong work left.
  */
 export function rankReadAlongCandidates(
   audio: ReadAlongAudioBook,
@@ -183,14 +204,7 @@ export function rankReadAlongCandidates(
 
   const groups: Scored[][] = [];
   for (const entry of scored) {
-    const index = canonicalSeriesIndex(entry.ebook.seriesIndex);
-    const group = groups.find((members) =>
-      members.every((member) => {
-        if (member.groupKey !== entry.groupKey) return false;
-        const other = canonicalSeriesIndex(member.ebook.seriesIndex);
-        return !index || !other || index === other;
-      }),
-    );
+    const group = groups.find((members) => members.every((member) => sameWork(member, entry)));
     const item = { ...entry, strong: STRONG_TIERS.includes(entry.candidate.tier) };
     if (group) group.push(item);
     else groups.push([item]);

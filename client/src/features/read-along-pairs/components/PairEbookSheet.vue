@@ -34,7 +34,7 @@ const list = computed(() => result.value?.candidates ?? [])
 const dismissed = computed(() => result.value?.dismissed ?? [])
 const pairedTitle = computed(() => {
   const current = pair.value
-  if (!current) return null
+  if (!current) return result.value?.pairHidden ? t('tools.readAlong.sheet.hiddenEbook') : null
   const match = [...list.value, ...dismissed.value].find(
     (candidate) => candidate.ebookBookId === current.ebookBookId || candidate.otherCopies.some((copy) => copy.ebookBookId === current.ebookBookId),
   )
@@ -153,7 +153,11 @@ function handleRegenerate(): void {
       </SheetHeader>
 
       <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        <div v-if="pair" class="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm" data-testid="pair-current">
+        <div
+          v-if="pair || result?.pairHidden"
+          class="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+          data-testid="pair-current"
+        >
           <TriangleAlert v-if="result?.pairState === 'needs_attention'" class="size-4 text-[var(--pill-warning)]" aria-hidden="true" />
           <p class="min-w-0 flex-1">
             {{ t('tools.readAlong.sheet.current', { title: pairedTitle }) }}
