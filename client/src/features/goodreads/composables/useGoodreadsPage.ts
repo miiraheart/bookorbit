@@ -1,16 +1,9 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { refDebounced, useLocalStorage } from '@vueuse/core'
+import { refDebounced, useLocalStorage, useSessionStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { useRouter } from 'vue-router'
-import {
-  GOODREADS_LIST_SHELF,
-  type BookRequestMediaKind,
-  type GoodreadsOverview,
-  type GoodreadsRequestState,
-  type GoodreadsShelfRow,
-  type GoodreadsSort,
-} from '@bookorbit/types'
+import type { BookRequestMediaKind, GoodreadsOverview, GoodreadsRequestState, GoodreadsShelfRow, GoodreadsSort } from '@bookorbit/types'
 import { usePermissions } from '@/features/auth/composables/usePermissions'
 import { useRequestLanguageDefault } from '@/features/book-requests/composables/useRequestDestinationDefault'
 import { formatDate } from '@/i18n/formatters'
@@ -18,7 +11,7 @@ import { errorMessage } from '@/lib/api-json'
 import { cancelGoodreadsRequests, requestGoodreadsBook } from '../api/goodreads.api'
 import { useGoodreadsShelves } from './useGoodreadsShelves'
 import { useGoodreadsSync } from './useGoodreadsSync'
-import { GOODREADS_MESSAGE_ROOT, goodreadsShelfLabelKey } from '../i18n'
+import { GOODREADS_MESSAGE_ROOT, goodreadsShelfLabel } from '../i18n'
 import { cancelSummary, cancellableRequestIds, requestRows, requestableRows } from '../lib/bulk'
 
 export type GoodreadsViewMode = 'grid' | 'list'
@@ -33,8 +26,8 @@ export function useGoodreadsPage() {
   const { hasPermission } = usePermissions()
   const language = useRequestLanguageDefault()
 
-  const source = ref<string | null>(null)
-  const shelf = ref<string | null>(null)
+  const source = useSessionStorage<string | null>('goodreads.source', null)
+  const shelf = useSessionStorage<string | null>('goodreads.shelf', null)
   const sort = ref<GoodreadsSort>('newest')
   const searchText = ref('')
   const search = refDebounced(searchText, 250)
@@ -43,7 +36,6 @@ export function useGoodreadsPage() {
   const bulkBusy = ref(false)
   const cancelConfirmOpen = ref(false)
   const viewMode = useLocalStorage<GoodreadsViewMode>('goodreads.viewMode', 'grid')
-  const sheetRow = ref<GoodreadsShelfRow | null>(null)
   const router = useRouter()
 
   const shelvesState = useGoodreadsShelves(source, shelf, sort, search)
@@ -66,9 +58,7 @@ export function useGoodreadsPage() {
   })
 
   function shelfLabel(name: string): string {
-    if (name === GOODREADS_LIST_SHELF) return gt('listShelf')
-    const key = goodreadsShelfLabelKey(name)
-    return key ? t(key) : name
+    return goodreadsShelfLabel(name, t)
   }
 
   function readDate(row: GoodreadsShelfRow): string | null {
@@ -119,19 +109,13 @@ export function useGoodreadsPage() {
     return row.bookIds[0] ?? 0
   }
 
-  /** Owned: the library's own book page, as a library card opens it. Not owned: the provider lookup sheet. */
+  /** Owned: the library's own book page, as a library card opens it. Not owned: the book's Goodreads page. */
   function handleOpen(row: GoodreadsShelfRow) {
     if (row.bookIds.length > 0 && !shelvesState.isUnavailable(row)) {
       void router.push({ name: 'book-detail', params: { bookId: ownedBookId(row) } })
       return
     }
-    sheetRow.value = row
-  }
-
-  async function handleSheetRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind) {
-    await handleRequest(row, kind)
-    const updated = rows.value.find((entry) => entry.key === row.key)
-    if (updated && sheetRow.value?.key === row.key) sheetRow.value = updated
+    void router.push({ name: 'goodreads-book', params: { source: row.source, key: row.key } })
   }
 
   function handleToggleRow(key: string) {
@@ -227,10 +211,6 @@ export function useGoodreadsPage() {
     cancelConfirmOpen.value = value
   }
 
-  function closeSheet() {
-    sheetRow.value = null
-  }
-
   const sync = useGoodreadsSync({ overview, sources, gt, loadOverview, loadRows })
 
   return reactive({
@@ -247,7 +227,6 @@ export function useGoodreadsPage() {
     bulkBusy,
     cancelConfirmOpen,
     viewMode,
-    sheetRow,
     canRequest,
     sources,
     currentSource,
@@ -266,7 +245,6 @@ export function useGoodreadsPage() {
     handleSelectShelf,
     handleMore,
     handleOpen,
-    handleSheetRequest,
     handleToggleRow,
     handleToggleAll,
     handleRequest,
@@ -277,7 +255,6 @@ export function useGoodreadsPage() {
     setViewMode,
     setOverview,
     setCancelConfirmOpen,
-    closeSheet,
   })
 }
 

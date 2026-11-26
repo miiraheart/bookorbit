@@ -108,11 +108,12 @@ async function mountView() {
       { path: '/authors/:authorId', name: 'author-detail', component: Empty },
       { path: '/series/:seriesId', name: 'series-detail', component: Empty },
       { path: '/requests/:id', name: 'book-request-detail', component: Empty },
+      { path: '/goodreads/book/:source/:key', name: 'goodreads-book', component: Empty },
     ],
   })
   await router.push('/')
   const wrapper = mount(GoodreadsView, {
-    global: { plugins: [router], stubs: { GoodreadsBookDialogs: DialogsStub, GoodreadsBookSheet: true } },
+    global: { plugins: [router], stubs: { GoodreadsBookDialogs: DialogsStub } },
   })
   await flushPromises()
   return wrapper
@@ -156,5 +157,16 @@ describe('GoodreadsView', () => {
 
     expect(wrapper.findAll('[data-testid="goodreads-row"]')).toHaveLength(3)
     expect(wrapper.findAll('[data-testid="goodreads-owned"]')).toHaveLength(1)
+  })
+
+  it('opens the Goodreads page of a book that is not in the library', async () => {
+    const wrapper = await mountView()
+    const router = wrapper.vm.$router
+    const remote = wrapper.findAll('[data-testid="goodreads-remote"]').find((entry) => entry.text().includes('Book wanted'))!
+    await remote.find('[data-testid="goodreads-remote-primary"]').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('goodreads-book')
+    expect(router.currentRoute.value.params).toEqual({ source: 'me', key: 'wanted' })
   })
 })

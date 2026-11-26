@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { COVER_ASPECT_RATIO_KEY } from '@/features/book/lib/cover-aspect-ratio'
 import type { CoverAspectRatio } from '@bookorbit/types'
 import GoodreadsBookDialogs from '../components/GoodreadsBookDialogs.vue'
-import GoodreadsBookSheet from '../components/GoodreadsBookSheet.vue'
 import GoodreadsGrid from '../components/GoodreadsGrid.vue'
 import GoodreadsList from '../components/GoodreadsList.vue'
 import GoodreadsToolbar from '../components/GoodreadsToolbar.vue'
@@ -61,14 +60,6 @@ function handleCancelConfirmClose() {
       </div>
     </GoodreadsToolbar>
 
-    <GoodreadsBookSheet
-      :row="page.sheetRow"
-      :can-request="page.canRequest"
-      :owned="page.sheetRow !== null && library.shownCard(page.sheetRow) !== null"
-      :busy="page.requestingKey !== null"
-      @close="page.closeSheet"
-      @request="page.handleSheetRequest"
-    />
     <ConfirmDialog
       :open="page.cancelConfirmOpen"
       :title="gt('cancelTitle', { count: page.bulkCancelIds.length })"

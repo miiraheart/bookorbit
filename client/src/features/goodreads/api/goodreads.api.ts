@@ -3,6 +3,7 @@ import {
   type BookRequestBulkResult,
   type BookRequestMediaKind,
   type BookRequestStatus,
+  type GoodreadsItemDetail,
   type GoodreadsOverview,
   type GoodreadsShelfItem,
   type GoodreadsShelfPage,
@@ -34,6 +35,10 @@ export function fetchGoodreadsShelf(params: {
   })
   if (params.q.trim()) query.set('q', params.q.trim())
   return apiJson<GoodreadsShelfPage>(`${BASE}/items?${query}`, undefined, 'goodreads.loadFailed')
+}
+
+export function fetchGoodreadsItem(source: string, key: string): Promise<GoodreadsItemDetail> {
+  return apiJson<GoodreadsItemDetail>(`${BASE}/items/${encodeURIComponent(source)}/${encodeURIComponent(key)}`, undefined, 'goodreads.loadFailed')
 }
 
 /** The exact Goodreads book behind a shelf row, read by its Goodreads id through the metadata provider. */

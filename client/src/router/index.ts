@@ -628,6 +628,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { titleRow: true, title: () => t(GOODREADS_TITLE_KEY) },
       },
       {
+        path: '/goodreads/book/:source/:key',
+        name: 'goodreads-book',
+        component: () => import('@/features/goodreads/views/GoodreadsDetailView.vue'),
+        meta: { title: () => t(GOODREADS_TITLE_KEY) },
+      },
+      {
         path: '/history',
         name: 'reading-history',
         component: () => import('@/features/reading-history/views/ReadingHistoryView.vue'),

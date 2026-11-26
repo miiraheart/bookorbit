@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Library, Star } from '@lucide/vue'
+import { FileText, Library, Star } from '@lucide/vue'
 import type { BookCard, GoodreadsShelfRow } from '@bookorbit/types'
 import BookCoverCard from '@/features/book/components/BookCoverCard.vue'
 import BookListRow from '@/features/book/components/BookListRow.vue'
@@ -127,6 +127,14 @@ function handleCopies() {
         <Star v-for="n in row.rating" :key="n" class="size-3 fill-current text-primary" aria-hidden="true" />
       </span>
       <GoodreadsCopySwitcher v-if="cards.length > 1" :cards="cards" :shown-id="shown.id" @show="handleShow" />
+      <RouterLink
+        :to="{ name: 'book-detail', params: { bookId: shown.id }, query: { tab: 'details' } }"
+        class="flex h-6 items-center gap-1 rounded-full border border-border px-2 text-[11px] leading-none text-foreground transition-colors hover:bg-accent"
+        :aria-label="gt('detailsFor', { title: row.title })"
+        data-testid="goodreads-owned-details"
+      >
+        <FileText class="size-3" aria-hidden="true" />{{ gt('details') }}
+      </RouterLink>
       <button
         type="button"
         class="flex h-6 items-center gap-1 rounded-full border border-border px-2 text-[11px] leading-none text-foreground transition-colors hover:bg-accent"

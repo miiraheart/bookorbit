@@ -202,4 +202,22 @@ describe('GoodreadsOwnedItem', () => {
     expect(listRow.props('book').id).toBe(2611)
     expect(wrapper.findComponent(BookCoverCard).exists()).toBe(false)
   })
+
+  it('links the Details chip to the full details of the shown copy, and follows a switch', async () => {
+    const { wrapper } = mountItem({ cards: [audiobook(), ebook()] })
+    const details = () => wrapper.find('[data-testid="goodreads-owned-details"]')
+
+    expect(details().attributes('href')).toBe('/book/2611?tab=details')
+    expect(details().attributes('aria-label')).toBe(t('goodreads.detailsFor', { title: 'A Court of Wings and Ruin' }))
+    await wrapper.find('[data-testid="goodreads-copy-audio"]').trigger('click')
+    expect(details().attributes('href')).toBe('/book/2444?tab=details')
+  })
+
+  it('keeps the list row title a link to the shown copy', () => {
+    const { wrapper } = mountItem({ cards: [audiobook(), ebook()], variant: 'list' })
+    const titles = wrapper.findAll('a').filter((link) => link.text() === 'A Court of Wings and Ruin')
+
+    expect(titles.length).toBeGreaterThan(0)
+    expect(titles.every((link) => link.attributes('href') === '/book/2611')).toBe(true)
+  })
 })

@@ -1,5 +1,5 @@
 import { watch, type WritableComputedRef } from 'vue'
-import type { BookRequestMediaKind, Locale } from '@bookorbit/types'
+import { GOODREADS_LIST_SHELF, type BookRequestMediaKind, type Locale } from '@bookorbit/types'
 import { i18n, type MessageSchema } from '@/i18n'
 import { compileIcuCatalog } from '@/i18n/icu'
 import { EN } from './en'
@@ -28,6 +28,13 @@ export function installGoodreadsMessages(): void {
 /** A shelf Goodreads names itself gets a translated label; a custom shelf keeps its own name. */
 export function goodreadsShelfLabelKey(shelf: string): string | null {
   return shelf in EN.shelves ? `${GOODREADS_MESSAGE_ROOT}.shelves.${shelf}` : null
+}
+
+/** A followed list's tab is named as such; Goodreads' own shelves are translated; a custom shelf keeps its name. */
+export function goodreadsShelfLabel(shelf: string, translate: (key: string) => string): string {
+  if (shelf === GOODREADS_LIST_SHELF) return translate(`${GOODREADS_MESSAGE_ROOT}.listShelf`)
+  const key = goodreadsShelfLabelKey(shelf)
+  return key ? translate(key) : shelf
 }
 
 const REQUEST_KEYS: Record<BookRequestMediaKind, { request: string; view: string; state: string }> = {
