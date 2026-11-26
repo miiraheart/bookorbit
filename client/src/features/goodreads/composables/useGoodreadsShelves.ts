@@ -1,5 +1,5 @@
-import { ref, watch, type Ref } from 'vue'
-import type { GoodreadsOverview, GoodreadsShelfRow, GoodreadsSort } from '@bookorbit/types'
+import { ref, shallowRef, watch, type Ref } from 'vue'
+import type { BookCard, GoodreadsOverview, GoodreadsShelfRow, GoodreadsSort } from '@bookorbit/types'
 import { fetchGoodreadsOverview, fetchGoodreadsShelf } from '../api/goodreads.api'
 
 const PAGE_SIZE = 50
@@ -9,6 +9,7 @@ export function useGoodreadsShelves(source: Ref<string | null>, shelf: Ref<strin
   const overview = ref<GoodreadsOverview | null>(null)
   const rows = ref<GoodreadsShelfRow[]>([])
   const total = ref(0)
+  const cardsById = shallowRef<ReadonlyMap<number, BookCard>>(new Map())
   const loading = ref(false)
   const error = ref(false)
   let generation = 0
@@ -28,6 +29,7 @@ export function useGoodreadsShelves(source: Ref<string | null>, shelf: Ref<strin
     if (!sourceId || !name) {
       rows.value = []
       total.value = 0
+      cardsById.value = new Map()
       return
     }
     const mine = ++generation
@@ -43,6 +45,9 @@ export function useGoodreadsShelves(source: Ref<string | null>, shelf: Ref<strin
       })
       if (mine !== generation) return
       rows.value = append ? [...rows.value, ...page.items] : page.items
+      const cards = new Map(append ? cardsById.value : [])
+      for (const card of page.cards) cards.set(card.id, card)
+      cardsById.value = cards
       total.value = page.total
       error.value = false
     } catch {
@@ -58,5 +63,5 @@ export function useGoodreadsShelves(source: Ref<string | null>, shelf: Ref<strin
 
   watch([source, shelf, sort, search], () => void loadRows(false))
 
-  return { overview, rows, total, loading, error, loadOverview, loadRows, patchRow }
+  return { overview, rows, total, cardsById, loading, error, loadOverview, loadRows, patchRow }
 }

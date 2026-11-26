@@ -10,7 +10,10 @@ import {
   type GoodreadsStoredItem,
 } from '@bookorbit/types';
 
+import type { RequestUser } from '../../common/types/request-user';
+import { BookService } from '../book/book.service';
 import type { AddGoodreadsSourceDto, ListGoodreadsItemsDto, ReplaceGoodreadsSnapshotDto } from './dto';
+import { loadShelfCards } from './goodreads-cards';
 import { GoodreadsRepository } from './goodreads.repository';
 
 /** Goodreads' own shelves first, in reading order; any custom shelf follows alphabetically. */
@@ -77,7 +80,10 @@ export function isNewItem(item: GoodreadsStoredItem, source: StoredSource | unde
 export class GoodreadsService {
   private readonly logger = new Logger(GoodreadsService.name);
 
-  constructor(private readonly repo: GoodreadsRepository) {}
+  constructor(
+    private readonly repo: GoodreadsRepository,
+    private readonly bookService: BookService,
+  ) {}
 
   /** Snapshots from before sources existed hold her own shelves only: they become the "me" source. */
   private async load(userId: number): Promise<Snapshot> {
@@ -147,8 +153,8 @@ export class GoodreadsService {
     };
   }
 
-  async listItems(userId: number, query: ListGoodreadsItemsDto): Promise<GoodreadsShelfPage> {
-    const snapshot = await this.load(userId);
+  async listItems(user: RequestUser, query: ListGoodreadsItemsDto): Promise<GoodreadsShelfPage> {
+    const snapshot = await this.load(user.id);
     const sourceId = query.source ?? GOODREADS_OWN_SOURCE_ID;
     const source = snapshot.sources.find((entry) => entry.id === sourceId);
     const needle = fold(query.q?.trim() ?? '');
@@ -167,7 +173,7 @@ export class GoodreadsService {
     const offset = query.offset ?? 0;
     const page = matching.slice(offset, offset + (query.limit ?? DEFAULT_LIMIT));
     const requests = await this.repo.findRequests(
-      userId,
+      user.id,
       page.map((item) => item.goodreadsId ?? item.key),
     );
     return {
@@ -177,6 +183,7 @@ export class GoodreadsService {
         isNew: isNewItem(item, source),
         request: requests.get(item.goodreadsId ?? item.key) ?? null,
       })),
+      cards: await loadShelfCards(this.bookService, user, page),
     };
   }
 

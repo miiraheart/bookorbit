@@ -1,3 +1,4 @@
+import type { BookCard } from "./book";
 import type { BookRequestStatus } from "./book-request";
 
 /** Book requests made from the Goodreads page carry this provider key and the Goodreads book id. */
@@ -82,6 +83,8 @@ export interface GoodreadsShelfRow extends GoodreadsStoredItem {
 export interface GoodreadsShelfPage {
   total: number;
   items: GoodreadsShelfRow[];
+  /** Library cards for the owned copies on this page, each book once. Copies the viewer may not see are absent. */
+  cards: BookCard[];
 }
 
 export type GoodreadsSort = "newest" | "title" | "author";

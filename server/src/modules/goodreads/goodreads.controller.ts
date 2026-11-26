@@ -17,7 +17,7 @@ export class GoodreadsController {
 
   @Get('items')
   listItems(@CurrentUser() user: RequestUser, @Query() query: ListGoodreadsItemsDto) {
-    return this.service.listItems(user.id, query);
+    return this.service.listItems(user, query);
   }
 
   @Put('snapshot')
