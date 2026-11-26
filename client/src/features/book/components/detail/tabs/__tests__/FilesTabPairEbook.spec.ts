@@ -11,15 +11,15 @@ const capability = shallowRef<ReadAloudCapability | null>(null)
 
 vi.mock('vue-router', () => ({
   useRoute: () => reactive({ query: {}, params: {} }),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn<() => void>(), replace: vi.fn<() => void>() }),
 }))
-vi.mock('@/lib/api', () => ({ api: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: vi.fn<() => Promise<unknown>>() }))
 vi.mock('@/features/auth/composables/usePermissions', () => ({
   usePermissions: () => ({ hasPermission: () => true, isDemoRestrictedAccount: ref(false) }),
 }))
 vi.mock('@/features/library/composables/useLibraryPermissions', () => ({ useLibraryPermissions: () => ({ hasLibraryPermission: () => true }) }))
 vi.mock('@/features/auth/composables/useAuth', () => ({ useAuth: () => ({ user: ref({ id: 7 }) }) }))
-vi.mock('@/features/book/composables/useBookDownload', () => ({ useBookDownload: () => ({ downloadFile: vi.fn() }) }))
+vi.mock('@/features/book/composables/useBookDownload', () => ({ useBookDownload: () => ({ downloadFile: vi.fn<() => void>() }) }))
 vi.mock('@/features/read-aloud/composables/useReadAloud', () => ({
   useReadAloud: () => ({
     capability,
