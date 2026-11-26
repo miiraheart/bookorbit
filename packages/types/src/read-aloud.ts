@@ -123,6 +123,8 @@ export type ReadAloudExistingFile = {
 
 export type ReadAloudJobInput = {
   epubFileId: number;
+  /** The record the EPUB belongs to when it is a paired ebook from another record; absent for the job's own book. */
+  epubBookId?: number | null;
   audioFileIds: number[];
   language: string;
   granularity: ReadAloudGranularity;
