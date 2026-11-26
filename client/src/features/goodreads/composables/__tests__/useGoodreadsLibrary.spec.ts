@@ -14,7 +14,7 @@ vi.mock('@/features/auth/composables/usePermissions', () => ({
 vi.mock('@/features/library/composables/useLibraries', () => ({
   useLibraries: () => ({ libraries: ref([{ id: 1, accessLevel: 'owner' }]), refreshLibraries: vi.fn<() => Promise<void>>() }),
 }))
-vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn(), fetchGoodreadsShelf: vi.fn() }))
+vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(), fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>() }))
 
 import { fetchGoodreadsShelf } from '../../api/goodreads.api'
 import { useGoodreadsLibrary } from '../useGoodreadsLibrary'
@@ -141,6 +141,31 @@ describe('useGoodreadsLibrary', () => {
 
     expect([...selectedKeys.value]).toEqual(['wanted'])
     expect(library.selectionMode).toBe(false)
+  })
+
+  it('opens the copies sheet on the copy shown, and follows the row when copies leave', async () => {
+    const { state, library } = await setup()
+    library.setShown('acowar', 2444)
+    library.openOwnedSheet(state.rows.value[0]!)
+
+    expect(library.ownedSheetOpen).toBe(true)
+    expect(library.ownedSheetBookId).toBe(2444)
+    expect(library.ownedSheetCards.map((entry) => entry.id)).toEqual([2444, 2611, 4124])
+
+    library.setOwnedSheetBook(4124)
+    expect(library.ownedSheetBookId).toBe(4124)
+    state.books.value = state.books.value.filter((entry) => entry.id !== 4124)
+    expect(library.ownedSheetBookId).toBe(2611)
+
+    library.setOwnedSheetOpen(false)
+    expect(library.ownedSheetOpen).toBe(false)
+    expect(library.ownedSheetRow).toBeNull()
+  })
+
+  it('never opens the copies sheet for a row without copies', async () => {
+    const { state, library } = await setup()
+    library.openOwnedSheet(state.rows.value[2]!)
+    expect(library.ownedSheetOpen).toBe(false)
   })
 
   it('clears every row from the selection bar exit', async () => {

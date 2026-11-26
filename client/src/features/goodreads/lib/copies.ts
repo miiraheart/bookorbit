@@ -1,6 +1,5 @@
 import {
   getCoverMedia,
-  getPrimaryBookFile,
   isAudioFormat,
   isContentBookFile,
   READER_OPENABLE_FORMATS,
@@ -85,12 +84,20 @@ export function ownedFormats(cards: readonly BookCard[]): { ebook: boolean; audi
   return { ebook: cards.some((card) => media(card).hasEbook), audio: cards.some(hasAudioTrack) }
 }
 
-/** The same route the library card opens, so the reader mounts the player that fits the file. */
-export function readerLocation(card: Pick<BookCard, 'id'>, file: Pick<BookFileRef, 'id' | 'format'>, mode?: 'peek'): RouteLocationRaw {
+/**
+ * The same route the library card opens, so the reader mounts the player that fits the file. `jump`
+ * adds a starting point the reader reads once: `cfi` for an EPUB, `at` (whole-book ms) for audio.
+ */
+export function readerLocation(
+  card: Pick<BookCard, 'id'>,
+  file: Pick<BookFileRef, 'id' | 'format'>,
+  mode?: 'peek',
+  jump: { cfi?: string; at?: string } = {},
+): RouteLocationRaw {
   return {
     name: 'reader',
     params: { bookId: card.id, fileId: file.id },
-    query: mode === 'peek' ? { format: file.format ?? 'epub', mode } : { format: file.format ?? 'epub' },
+    query: { format: file.format ?? 'epub', ...(mode === 'peek' ? { mode } : {}), ...jump },
   }
 }
 
@@ -99,9 +106,4 @@ export function openableEntries(card: BookCard): OpenableEntry[] {
   return bookFormatEntries(card.files)
     .map((entry) => ({ key: entry.key, audio: entry.audio, readAlong: entry.readAlong, file: entry.files[0]! }))
     .filter((entry) => READER_OPENABLE_FORMATS.has(entry.file.format!.toLowerCase()))
-}
-
-/** The file the card's own Read or Play button opens. */
-export function primaryOpenableFile(card: BookCard): BookFileRef | null {
-  return getPrimaryBookFile(openableEntries(card).map((entry) => entry.file))
 }

@@ -45,6 +45,7 @@ function handleRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind) {
         @update:book="library.handleTableBookUpdate"
         @select="page.handleToggleRow(row.key)"
         @toggle="page.handleToggleRow(row.key)"
+        @copies="library.openOwnedSheet(row)"
       />
       <GoodreadsRemoteCard
         v-else

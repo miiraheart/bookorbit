@@ -8,6 +8,7 @@ import MetadataExportDialog from '@/features/book/components/MetadataExportDialo
 import MoveToLibrarySheet from '@/features/book/components/MoveToLibrarySheet.vue'
 import AddToCollectionSheet from '@/features/collection/components/AddToCollectionSheet.vue'
 import SendBookDialog from '@/features/email/components/SendBookDialog.vue'
+import GoodreadsOwnedSheet from './GoodreadsOwnedSheet.vue'
 import type { GoodreadsLibrary } from '../composables/useGoodreadsLibrary'
 
 const MergeBooksSheet = defineAsyncComponent(() => import('@/features/book/components/merge/MergeBooksSheet.vue'))
@@ -26,6 +27,16 @@ defineProps<{ library: GoodreadsLibrary }>()
     :open="library.quickViewOpen"
     @update:open="library.setQuickViewOpen"
     @action="library.handleQuickViewAction"
+  />
+
+  <GoodreadsOwnedSheet
+    :row="library.ownedSheetRow"
+    :cards="library.ownedSheetCards"
+    :book-id="library.ownedSheetBookId"
+    :open="library.ownedSheetOpen"
+    @update:open="library.setOwnedSheetOpen"
+    @update:book-id="library.setOwnedSheetBook"
+    @update:book="library.handleTableBookUpdate"
   />
 
   <SelectionActionBar

@@ -4,7 +4,7 @@ import { defineComponent, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { BookCard, BookFileRef, GoodreadsOverview, GoodreadsShelfRow } from '@bookorbit/types'
 
-vi.mock('@/lib/api', () => ({ api: vi.fn(async () => new Response('{}', { status: 200 })) }))
+vi.mock('@/lib/api', () => ({ api: vi.fn<() => Promise<Response>>(async () => new Response('{}', { status: 200 })) }))
 vi.mock('@/features/scanner/composables/useScanProgress', () => ({ getSocket: () => ({ on: vi.fn<() => void>(), off: vi.fn<() => void>() }) }))
 vi.mock('@/features/auth/composables/usePermissions', () => ({
   usePermissions: () => ({ hasPermission: () => true, isSuperuser: ref(true), isDemoRestrictedAccount: ref(false) }),
@@ -13,9 +13,9 @@ vi.mock('@/features/library/composables/useLibraries', () => ({
   useLibraries: () => ({ libraries: ref([{ id: 1, accessLevel: 'owner' }]), refreshLibraries: vi.fn<() => Promise<void>>() }),
 }))
 vi.mock('@/features/book-requests/composables/useRequestDestinationDefault', () => ({
-  useRequestLanguageDefault: () => ({ load: vi.fn(async () => true), resolveLanguage: () => null }),
+  useRequestLanguageDefault: () => ({ load: vi.fn<() => Promise<boolean>>(async () => true), resolveLanguage: () => null }),
 }))
-vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn(), fetchGoodreadsShelf: vi.fn() }))
+vi.mock('../../api/goodreads.api', () => ({ fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(), fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>() }))
 
 import { fetchGoodreadsOverview, fetchGoodreadsShelf } from '../../api/goodreads.api'
 import GoodreadsView from '../GoodreadsView.vue'

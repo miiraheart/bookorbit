@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BookCard, BookFileRef } from '@bookorbit/types'
 
-import { classifyCard, openableEntries, ownedFormats, pickCopies, primaryOpenableFile, readerLocation, rowCards } from '../copies'
+import { classifyCard, openableEntries, ownedFormats, pickCopies, readerLocation, rowCards } from '../copies'
 
 let nextFileId = 1
 
@@ -106,6 +106,11 @@ describe('goodreads copies', () => {
       query: { format: 'm4b' },
     })
     expect(readerLocation({ id: 2444 }, audiobook, 'peek')).toMatchObject({ query: { format: 'm4b', mode: 'peek' } })
+    expect(readerLocation({ id: 2444 }, audiobook, undefined, { at: '61000' })).toEqual({
+      name: 'reader',
+      params: { bookId: 2444, fileId: audiobook.id },
+      query: { format: 'm4b', at: '61000' },
+    })
   })
 
   it('lists one openable entry per edition and opens a multi-track audiobook from its first track', () => {
@@ -117,6 +122,5 @@ describe('goodreads copies', () => {
       ['epub', epub.id],
       ['mp3', track1.id],
     ])
-    expect(primaryOpenableFile(card(50, [track1, track2, epub]))?.id).toBe(epub.id)
   })
 })

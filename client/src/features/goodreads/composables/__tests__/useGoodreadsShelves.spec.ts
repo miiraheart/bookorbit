@@ -3,8 +3,8 @@ import { ref } from 'vue'
 import { GOODREADS_CARD_CAP, type BookCard, type GoodreadsShelfPage, type GoodreadsShelfRow, type GoodreadsSort } from '@bookorbit/types'
 
 vi.mock('../../api/goodreads.api', () => ({
-  fetchGoodreadsOverview: vi.fn(),
-  fetchGoodreadsShelf: vi.fn(),
+  fetchGoodreadsOverview: vi.fn<() => Promise<unknown>>(),
+  fetchGoodreadsShelf: vi.fn<() => Promise<unknown>>(),
 }))
 
 import { fetchGoodreadsShelf } from '../../api/goodreads.api'

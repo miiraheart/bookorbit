@@ -186,6 +186,14 @@ describe('GoodreadsOwnedItem', () => {
     expect(wrapper.find('[data-testid="goodreads-copy-switcher"]').exists()).toBe(false)
   })
 
+  it.each(['grid', 'list'] as const)('opens the copies sheet from its own button in the %s variant, not the quick view', async (variant) => {
+    const { wrapper } = mountItem({ cards: [audiobook(), ebook()], variant })
+    await wrapper.find('[data-testid="goodreads-owned-copies"]').trigger('click')
+
+    expect(wrapper.emitted('copies')).toEqual([[]])
+    expect(wrapper.emitted('action')).toBeUndefined()
+  })
+
   it('renders the real library list row in the list variant', () => {
     const { wrapper } = mountItem({ cards: [audiobook(), ebook()], variant: 'list' })
     const listRow = wrapper.findComponent(BookListRow)

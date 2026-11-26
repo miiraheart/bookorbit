@@ -58,6 +58,28 @@ export function useGoodreadsLibrary({ books, rows, cardsById, selectedKeys, relo
     shownByRow.value = new Map(shownByRow.value).set(rowKey, bookId)
   }
 
+  const ownedSheet = ref<{ rowKey: string; bookId: number } | null>(null)
+  const ownedSheetRow = computed(() => rows.value.find((row) => row.key === ownedSheet.value?.rowKey) ?? null)
+  const ownedSheetCards = computed(() => (ownedSheetRow.value ? cardsOf(ownedSheetRow.value) : []))
+  /** A copy that left the row hands the sheet to the row's main copy; a row with none closes it. */
+  const ownedSheetBookId = computed(() => {
+    const cards = ownedSheetCards.value
+    return cards.find((card) => card.id === ownedSheet.value?.bookId)?.id ?? pickCopies(cards).primary?.id ?? null
+  })
+
+  function openOwnedSheet(row: GoodreadsShelfRow) {
+    const shown = shownCard(row)
+    if (shown) ownedSheet.value = { rowKey: row.key, bookId: shown.id }
+  }
+
+  function setOwnedSheetBook(bookId: number) {
+    if (ownedSheet.value) ownedSheet.value = { ...ownedSheet.value, bookId }
+  }
+
+  function setOwnedSheetOpen(open: boolean) {
+    if (!open) ownedSheet.value = null
+  }
+
   const ownedSelection = computed(() => rows.value.flatMap((row) => (selectedKeys.value.has(row.key) ? (shownCard(row)?.id ?? []) : [])))
 
   // Both directions run synchronously: the shell selects a card itself for "Add to collection",
@@ -149,6 +171,13 @@ export function useGoodreadsLibrary({ books, rows, cardsById, selectedKeys, relo
     cardsOf,
     shownCard,
     setShown,
+    ownedSheetRow,
+    ownedSheetCards,
+    ownedSheetBookId,
+    ownedSheetOpen: computed(() => ownedSheetBookId.value !== null),
+    openOwnedSheet,
+    setOwnedSheetBook,
+    setOwnedSheetOpen,
     exitSelection,
     handleQuickViewAction,
     handleEditSelected,

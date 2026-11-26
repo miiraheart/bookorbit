@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Star } from '@lucide/vue'
+import { Library, Star } from '@lucide/vue'
 import type { BookCard, GoodreadsShelfRow } from '@bookorbit/types'
 import BookCoverCard from '@/features/book/components/BookCoverCard.vue'
 import BookListRow from '@/features/book/components/BookListRow.vue'
@@ -29,6 +29,7 @@ const emit = defineEmits<{
   'update:shownId': [bookId: number]
   select: [event: MouseEvent]
   toggle: []
+  copies: []
 }>()
 
 const { t } = useI18n()
@@ -65,6 +66,10 @@ function handleSelect(event: MouseEvent) {
 
 function handleToggle() {
   emit('toggle')
+}
+
+function handleCopies() {
+  emit('copies')
 }
 </script>
 
@@ -122,6 +127,15 @@ function handleToggle() {
         <Star v-for="n in row.rating" :key="n" class="size-3 fill-current text-primary" aria-hidden="true" />
       </span>
       <GoodreadsCopySwitcher v-if="cards.length > 1" :cards="cards" :shown-id="shown.id" @show="handleShow" />
+      <button
+        type="button"
+        class="flex h-6 items-center gap-1 rounded-full border border-border px-2 text-[11px] leading-none text-foreground transition-colors hover:bg-accent"
+        :aria-label="gt('copiesAndBookmarksFor', { title: row.title })"
+        data-testid="goodreads-owned-copies"
+        @click="handleCopies"
+      >
+        <Library class="size-3" aria-hidden="true" />{{ gt('copiesAndBookmarks') }}
+      </button>
     </div>
   </div>
 </template>
