@@ -6,6 +6,7 @@ import {
   type GoodreadsShelfItem,
   type GoodreadsShelfPage,
   type GoodreadsSort,
+  type MetadataCandidate,
 } from '@bookorbit/types'
 import { apiJson, jsonBody } from '@/lib/api-json'
 
@@ -32,6 +33,16 @@ export function fetchGoodreadsShelf(params: {
   })
   if (params.q.trim()) query.set('q', params.q.trim())
   return apiJson<GoodreadsShelfPage>(`${BASE}/items?${query}`, undefined, 'goodreads.loadFailed')
+}
+
+/** The exact Goodreads book behind a shelf row, read by its Goodreads id through the metadata provider. */
+export async function lookupGoodreadsBook(goodreadsId: string): Promise<MetadataCandidate | null> {
+  const query = new URLSearchParams({ provider: GOODREADS_PROVIDER_KEY, id: goodreadsId })
+  try {
+    return await apiJson<MetadataCandidate | null>(`/api/v1/metadata-fetch/lookup?${query.toString()}`, undefined, 'goodreads.loadFailed')
+  } catch {
+    return null
+  }
 }
 
 export function requestGoodreadsSync(): Promise<GoodreadsOverview> {

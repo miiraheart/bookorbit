@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import BookCoverArtwork from '@/features/book/components/BookCoverArtwork.vue'
 import { useMetadataSearch } from '@/features/book/composables/useMetadataSearch'
+import { useSafeHtml } from '@/features/book/composables/useSafeHtml'
 import { providerIconPathSafe } from '@/features/book/lib/provider-icons'
 import { formatDate, formatLanguageName } from '@/i18n/formatters'
+import { lookupGoodreadsBook } from '../api/goodreads.api'
 import { GOODREADS_MESSAGE_ROOT } from '../i18n'
 
 /**
- * A book from a Goodreads shelf that is not in the library, shown the way the request search shows
- * a candidate: the same metadata search over the configured providers, ISBN first, then title and author.
+ * A book from a Goodreads shelf that is not in the library. The exact Goodreads book is read by its id;
+ * only when that fails does a provider search stand in, and then only results whose title matches.
  */
 const props = defineProps<{ row: GoodreadsShelfRow | null; canRequest: boolean; busy: boolean }>()
 const emit = defineEmits<{ close: []; request: [row: GoodreadsShelfRow] }>()
@@ -23,20 +25,48 @@ function gt(key: string, params: Record<string, unknown> = {}): string {
   return t(`${GOODREADS_MESSAGE_ROOT}.${key}`, params)
 }
 
-const { results, isStreaming, hasSearched, loadProviders, search } = useMetadataSearch()
+const { results, isStreaming, loadProviders, search } = useMetadataSearch()
 const chosenIndex = ref(0)
+const exact = ref<MetadataCandidate | null>(null)
+const lookingUp = ref(false)
 let providersLoaded = false
 
-const candidates = computed<MetadataCandidate[]>(() => results.value.filter((candidate) => candidate.title || candidate.description))
-const candidate = computed<MetadataCandidate | null>(() => candidates.value[chosenIndex.value] ?? candidates.value[0] ?? null)
+function titleKey(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/\s*[(:].*$/, '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .toLowerCase()
+}
+
+const candidates = computed<MetadataCandidate[]>(() => {
+  const wanted = titleKey(props.row?.title)
+  return results.value.filter((candidate) => (candidate.title || candidate.description) && titleKey(candidate.title) === wanted)
+})
+const candidate = computed<MetadataCandidate | null>(() => exact.value ?? candidates.value[chosenIndex.value] ?? candidates.value[0] ?? null)
 const goodreadsUrl = computed(() => (props.row?.goodreadsId ? `https://www.goodreads.com/book/show/${props.row.goodreadsId}` : null))
-const coverSrc = computed(() => candidate.value?.coverUrl ?? props.row?.coverUrl ?? null)
+/** Goodreads' own cover for this edition, at full size, so it never changes with the provider that answers first. */
+const coverSrc = computed(() => props.row?.coverUrl?.replace(/\._S[XY]\d+_/, '') ?? exact.value?.coverUrl ?? null)
+const safeDescription = useSafeHtml(() => candidate.value?.description)
+const busyLooking = computed(() => lookingUp.value || (isStreaming.value && !candidate.value))
 const requestable = computed(
   () => props.canRequest && props.row !== null && props.row.bookIds.length === 0 && (!props.row.request || ['cancelled', 'rejected'].includes(props.row.request.status)),
 )
 
 async function lookUp(row: GoodreadsShelfRow) {
   chosenIndex.value = 0
+  exact.value = null
+  if (row.goodreadsId) {
+    lookingUp.value = true
+    const found = await lookupGoodreadsBook(row.goodreadsId)
+    lookingUp.value = false
+    if (props.row?.key !== row.key) return
+    if (found) {
+      exact.value = found
+      return
+    }
+  }
   if (!providersLoaded) {
     await loadProviders()
     providersLoaded = true
@@ -143,21 +173,24 @@ function handleRequest() {
             </a>
           </div>
 
-          <p v-if="isStreaming && !candidate" class="flex items-center gap-2 text-sm text-muted-foreground">
+          <p v-if="busyLooking" class="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 class="size-4 animate-spin" aria-hidden="true" />{{ gt('detail.searching') }}
           </p>
-          <p v-else-if="hasSearched && !isStreaming && !candidate" class="text-sm text-muted-foreground">{{ gt('detail.noMetadata') }}</p>
+          <p v-else-if="!candidate" class="text-sm text-muted-foreground">{{ gt('detail.noMetadata') }}</p>
 
           <template v-if="candidate">
-            <p v-if="candidate.description" class="text-sm whitespace-pre-line text-foreground" data-testid="goodreads-sheet-description">
-              {{ candidate.description }}
-            </p>
+            <div
+              v-if="safeDescription"
+              class="description-content text-sm leading-relaxed text-foreground"
+              data-testid="goodreads-sheet-description"
+              v-html="safeDescription"
+            />
             <div v-if="candidate.genres?.length" class="flex flex-wrap gap-1">
               <span v-for="genre in candidate.genres.slice(0, 8)" :key="genre" class="rounded-full border border-border px-2 text-xs">{{ genre }}</span>
             </div>
           </template>
 
-          <div v-if="candidates.length > 1" class="flex flex-col gap-1 border-t border-border pt-3">
+          <div v-if="!exact && candidates.length > 1" class="flex flex-col gap-1 border-t border-border pt-3">
             <p class="text-xs text-muted-foreground">{{ gt('detail.otherEditions') }}</p>
             <button
               v-for="(entry, index) in candidates.slice(0, 8)"
