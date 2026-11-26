@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, Loader2 } from '@lucide/vue'
@@ -38,6 +38,14 @@ const series = computed(() => {
   return { name, label: index != null ? `${name} #${index}` : name }
 })
 
+const mainEl = ref<HTMLElement | null>(null)
+watch(
+  () => [route.params.source, route.params.key],
+  () => {
+    if (mainEl.value) mainEl.value.scrollTop = 0
+  },
+)
+
 function handleReload() {
   void item.load()
 }
@@ -55,7 +63,7 @@ function handleReload() {
       </RouterLink>
     </header>
 
-    <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:px-6 sm:py-4">
+    <main ref="mainEl" class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:px-6 sm:py-4">
       <p v-if="loading && !row" class="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 class="size-4 animate-spin" aria-hidden="true" />{{ gt('detail.loading') }}
       </p>

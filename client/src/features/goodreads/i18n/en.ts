@@ -95,7 +95,6 @@ export const EN = {
   detailLoading: 'Loading this copy',
   detailFailed: 'Could not load this copy',
   detail: {
-    series: 'Series',
     published: 'Published',
     publisher: 'Publisher',
     language: 'Language',

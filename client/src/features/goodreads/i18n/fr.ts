@@ -93,7 +93,6 @@ export const FR: GoodreadsMessages = {
   detailLoading: 'Chargement de cet exemplaire',
   detailFailed: 'Impossible de charger cet exemplaire',
   detail: {
-    series: 'Série',
     published: 'Publié',
     publisher: 'Éditeur',
     language: 'Langue',

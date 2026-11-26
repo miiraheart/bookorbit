@@ -122,6 +122,7 @@ async function mountView() {
 describe('GoodreadsView', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     vi.mocked(fetchGoodreadsOverview).mockResolvedValue(overview)
     vi.mocked(fetchGoodreadsShelf).mockResolvedValue({
       total: 3,

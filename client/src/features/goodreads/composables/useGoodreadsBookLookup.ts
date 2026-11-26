@@ -70,5 +70,5 @@ export function useGoodreadsBookLookup(row: () => GoodreadsShelfRow | null) {
     { immediate: true },
   )
 
-  return { candidate, candidates, exact, busy, coverSrc }
+  return { candidate, busy, coverSrc }
 }
