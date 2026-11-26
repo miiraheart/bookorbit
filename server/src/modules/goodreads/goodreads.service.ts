@@ -17,10 +17,13 @@ import { GoodreadsRepository } from './goodreads.repository';
 const SHELF_ORDER = ['currently-reading', 'read-next', 'to-read', 'next-in-series', 'read'];
 const DEFAULT_LIMIT = 50;
 const MAX_SOURCES = 30;
+const NEW_FOR_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface StoredSource extends GoodreadsSource {
   /** True once the user renamed it: the sync job then stops overwriting the name. */
   nameLocked?: boolean;
+  /** When the first import landed: books already there then are never new, later ones stay new for a week. */
+  baselineAt?: string | null;
 }
 
 interface Snapshot {
@@ -64,8 +67,10 @@ export function parseGoodreadsSource(url: string): { kind: 'user' | 'list'; ref:
   throw new BadRequestException('Paste a Goodreads profile or list link (goodreads.com/user/show/... or goodreads.com/list/show/...)');
 }
 
-export function isNewItem(item: GoodreadsStoredItem, source: GoodreadsSource | undefined): boolean {
-  return Boolean(source?.previousSyncedAt) && item.firstSeenAt > (source?.previousSyncedAt ?? '');
+export function isNewItem(item: GoodreadsStoredItem, source: StoredSource | undefined, now = Date.now()): boolean {
+  const baseline = source?.baselineAt;
+  if (!baseline || item.firstSeenAt <= baseline) return false;
+  return now - Date.parse(item.firstSeenAt) < NEW_FOR_MS;
 }
 
 @Injectable()
@@ -90,6 +95,11 @@ export class GoodreadsService {
       source: item.source ?? GOODREADS_OWN_SOURCE_ID,
       firstSeenAt: item.firstSeenAt ?? lastSyncedAt ?? new Date(0).toISOString(),
     }));
+    for (const source of sources) {
+      if (source.baselineAt !== undefined) continue;
+      const seen = items.filter((item) => item.source === source.id).map((item) => item.firstSeenAt);
+      source.baselineAt = seen.length > 0 ? seen.reduce((min, value) => (value < min ? value : min)) : null;
+    }
     return {
       lastSyncedAt,
       syncRequestedAt: typeof data?.syncRequestedAt === 'string' ? data.syncRequestedAt : null,
@@ -106,13 +116,14 @@ export class GoodreadsService {
     return snapshot.sources.map((stored) => {
       const source: GoodreadsSource = { ...stored };
       delete (source as StoredSource).nameLocked;
+      delete (source as StoredSource).baselineAt;
       const counts = new Map<string, GoodreadsShelfSummary>();
       let total = 0;
       let newCount = 0;
       for (const item of snapshot.items) {
         if (item.source !== source.id) continue;
         total += 1;
-        const fresh = isNewItem(item, source);
+        const fresh = isNewItem(item, stored);
         if (fresh) newCount += 1;
         for (const shelf of item.shelves) {
           const entry = counts.get(shelf) ?? { name: shelf, count: 0, newCount: 0 };
@@ -187,6 +198,7 @@ export class GoodreadsService {
       return this.getOverview(userId);
     }
 
+    if (!source.baselineAt) source.baselineAt = now;
     const firstSeen = new Map<string, string>();
     for (const item of snapshot.items) if (item.source === sourceId) firstSeen.set(item.key, item.firstSeenAt);
     const items: GoodreadsStoredItem[] = dto.items.map((item) => ({

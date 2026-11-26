@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { GoodreadsShelfItem } from '@bookorbit/types';
 
-import { GoodreadsService, parseGoodreadsSource } from './goodreads.service';
+import { GoodreadsService, isNewItem, parseGoodreadsSource } from './goodreads.service';
 import type { GoodreadsRepository } from './goodreads.repository';
 
 function item(overrides: Partial<GoodreadsShelfItem>): GoodreadsShelfItem {
@@ -99,6 +99,19 @@ describe('GoodreadsService', () => {
     ]);
     expect(page.items[1]?.firstSeenAt).toBe(firstSeenA);
     expect((await service.getOverview(7)).sources[0]?.newCount).toBe(1);
+  });
+
+  it('keeps a book new for a week across later syncs, never the first import', async () => {
+    await service.replaceSnapshot(7, { items: [item({ key: 'a', goodreadsId: 'a' })] });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await service.replaceSnapshot(7, { items: [item({ key: 'a', goodreadsId: 'a' }), item({ key: 'b', goodreadsId: 'b' })] });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await service.replaceSnapshot(7, { items: [item({ key: 'a', goodreadsId: 'a' }), item({ key: 'b', goodreadsId: 'b' })] });
+    const page = await service.listItems(7, { shelf: 'to-read' });
+    expect(Object.fromEntries(page.items.map((row) => [row.key, row.isNew]))).toEqual({ a: false, b: true });
+    const b = page.items.find((row) => row.key === 'b')!;
+    const eightDaysLater = Date.parse(b.firstSeenAt) + 8 * 24 * 60 * 60 * 1000;
+    expect(isNewItem(b, { baselineAt: '2026-01-01T00:00:00.000Z' } as never, eightDaysLater)).toBe(false);
   });
 
   it('sorts by title and author on request, newest first by default', async () => {
