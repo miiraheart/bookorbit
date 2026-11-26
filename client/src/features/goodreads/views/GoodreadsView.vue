@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { refDebounced } from '@vueuse/core'
+import { refDebounced, useIntervalFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { BookMarked, BookPlus, Check, LayoutGrid, List, Pencil, Plus, RefreshCw, Search, Star, Trash2, XCircle } from '@lucide/vue'
 import { useRouter } from 'vue-router'
@@ -185,6 +185,27 @@ async function handleSync() {
   }
 }
 
+/** The sync runs outside the app, so the page polls until the job has written the new snapshot. */
+const syncPoll = useIntervalFn(
+  async () => {
+    await loadOverview()
+    if (syncPending.value) return
+    syncPoll.pause()
+    await loadRows(false)
+    const fresh = sources.value.reduce((sum, entry) => sum + entry.newCount, 0)
+    toast.success(gt('syncDone', { count: fresh }))
+  },
+  10_000,
+  { immediate: false },
+)
+watch(
+  syncPending,
+  (pending) => {
+    if (pending) syncPoll.resume()
+  },
+  { immediate: true },
+)
+
 async function handleRequest(row: GoodreadsShelfRow) {
   if (requestingKey.value) return
   requestingKey.value = row.key
@@ -292,9 +313,9 @@ async function handleRemove() {
     <PageTitleRow class="shrink-0" :eyebrow="gt('eyebrow')" :title="gt('title')" :icon="BookMarked">
       <template #actions>
         <div class="flex shrink-0 items-center gap-3">
-          <span class="text-xs text-muted-foreground max-sm:hidden" data-testid="goodreads-sync-label">{{ syncPending ?? syncLabel }}</span>
-          <Button variant="outline" size="sm" :disabled="syncing" data-testid="goodreads-sync" @click="handleSync">
-            <RefreshCw class="size-3.5" :class="{ 'animate-spin': syncing }" aria-hidden="true" />
+          <span class="text-xs text-muted-foreground" :class="{ 'max-sm:hidden': !syncPending }" data-testid="goodreads-sync-label">{{ syncPending ?? syncLabel }}</span>
+          <Button variant="outline" size="sm" :disabled="syncing || !!syncPending" data-testid="goodreads-sync" @click="handleSync">
+            <RefreshCw class="size-3.5" :class="{ 'animate-spin': syncing || syncPending }" aria-hidden="true" />
             <span class="max-sm:hidden">{{ gt('syncNow') }}</span>
           </Button>
         </div>
