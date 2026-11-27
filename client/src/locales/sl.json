@@ -8728,7 +8728,7 @@
       "MEDIUM_UNCOVERED": "Ni omogočenega iskalnega vira, ki bi nosil to vrsto knjige, zato ni bilo nič iskano za to zahtevo.",
       "PROFILE_EXCLUDED_ALL": "Nobeno sproščanje se ni ujemalo s profilom za ta medij, zato ta potrebuje sprostitev, ki jo izberemo ročno.",
       "ALL_TRIED": "Vsaka dovolj dobra, da zgrabi je že bila preizkušena, tako da ta potrebuje sprostitev, ki jo izbere ročno",
-      "BELOW_SCORE_FLOOR": "Ni dosežene nobene izpustitve {floor} ali bolje, tako da ta potrebuje sprostitev, ki jo izbere ročno",
+      "BELOW_SCORE_FLOOR": "Ob iskanju nobena izdaja ni dosegla dovolj visoke ocene za samodejni prenos, zato je treba izdajo izbrati ročno",
       "ALL_BLOCKED": "Vsako dovolj dobro, da zgrabi je izključena zgodnejša napaka, tako da ta potrebuje sprostitev izbran ročno",
       "ABANDONED": "Ni bila izbrana nobena izdaja, zato ta prenos ni bil zagnan"
     },

@@ -82,8 +82,6 @@ export function useReleaseFilters(releases: Ref<ReleaseCandidateItem[]>) {
   /** A release that states nothing on the sorted axis sorts last rather than as a zero. */
   function orderOf(release: ReleaseCandidateItem): number {
     switch (sortKey.value) {
-      case 'popular':
-        return popularityShare(release) ?? -1
       case 'seeders':
         return release.seeders ?? -1
       case 'size':
@@ -93,7 +91,7 @@ export function useReleaseFilters(releases: Ref<ReleaseCandidateItem[]>) {
       case 'added':
         return release.publishedAt ? Date.parse(release.publishedAt) : -1
       default:
-        return release.score
+        return sortKey.value === 'popular' ? (popularityShare(release) ?? -1) : release.score
     }
   }
 
@@ -147,9 +145,8 @@ export function useReleaseFilters(releases: Ref<ReleaseCandidateItem[]>) {
    */
   const availableSortKeys = computed<ReleaseSortKey[]>(() =>
     RELEASE_SORT_KEYS.filter((key) => {
+      if (key === 'popular') return releases.value.some(hasPopularity)
       switch (key) {
-        case 'popular':
-          return releases.value.some(hasPopularity)
         case 'seeders':
           return anySeeders.value
         case 'size':

@@ -11582,7 +11582,7 @@
         "expectedSize": "Plausible size",
         "suspiciousSize": "Unlikely size {detail}",
         "seeders": "{detail} seeders",
-        "downloads": "{detail} downloads",
+        "downloads": "{count, plural, one {# download} other {# downloads}}",
         "freeleech": "Freeleech",
         "likelySeveralBooks": "{detail} files, may be several books"
       },
@@ -11771,7 +11771,7 @@
       "MEDIUM_UNCOVERED": "No enabled search source carries this kind of book, so nothing was searched for this request",
       "PROFILE_EXCLUDED_ALL": "No release matched the profile for this medium, so this one needs a release picked by hand",
       "ALL_TRIED": "Every release good enough to grab has already been tried, so this one needs a release picked by hand",
-      "BELOW_SCORE_FLOOR": "When this was searched, no release scored {floor} or better, so this one needs a release picked by hand",
+      "BELOW_SCORE_FLOOR": "When this was searched, no release scored high enough to grab automatically, so this one needs a release picked by hand",
       "ALL_BLOCKED": "Every release good enough to grab was ruled out by an earlier failure, so this one needs a release picked by hand",
       "ABANDONED": "No release was picked, so this download was not started",
       "DOWNLOAD_UNREADABLE": "The download finished, but BookOrbit could not read it at {path}"

@@ -330,18 +330,15 @@ function sizeReasonFor(candidate: ReleaseCandidate, request: ScoringRequest): Re
 
 /**
  * Log-scaled: the gap between 1 and 20 seeders matters, the gap between 200 and 400 does not.
- * Seeders and downloads share the one weight and the better of the two counts, so a direct source
- * with a large download count earns what a well seeded torrent does. Neither stated means no
- * reason at all, never a zero.
+ * Seeders and downloads share the one weight. A swarm counts its seeders only, and a direct source
+ * with no swarm its downloads, so a large download count earns what a well seeded torrent does.
+ * Neither stated means no reason at all, never a zero.
  */
 function popularityReason(candidate: ReleaseCandidate): ReleaseScoreReason | null {
   const seeders = seederShare(candidate.seeders);
+  if (seeders !== null) return { code: 'seeders', points: round(WEIGHTS.seeders * seeders), detail: String(candidate.seeders) };
   const grabs = grabsShare(candidate.grabs);
-  if (grabs !== null && (seeders === null || grabs > seeders)) {
-    return { code: 'downloads', points: round(WEIGHTS.seeders * grabs), detail: String(candidate.grabs) };
-  }
-  if (seeders === null) return null;
-  return { code: 'seeders', points: round(WEIGHTS.seeders * seeders), detail: String(candidate.seeders) };
+  return grabs === null ? null : { code: 'downloads', points: round(WEIGHTS.seeders * grabs), detail: String(candidate.grabs) };
 }
 
 /**

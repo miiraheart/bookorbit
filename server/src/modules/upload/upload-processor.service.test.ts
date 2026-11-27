@@ -306,11 +306,11 @@ describe('UploadProcessorService', () => {
     );
   });
 
-  it('throws InternalServerErrorException when creating the book file row fails', async () => {
+  it('throws ConflictException when the new book file row is held by another book', async () => {
     insertBookFilesReturning.mockResolvedValueOnce([]);
 
     await expect(service.createBookRecord(1, 2, '/folder', '/folder/book.epub', 'book/book.epub', 'epub', 12345)).rejects.toBeInstanceOf(
-      InternalServerErrorException,
+      ConflictException,
     );
   });
 
@@ -517,6 +517,44 @@ describe('UploadProcessorService', () => {
         ConflictException,
       );
       expect(insertBookFilesValues).not.toHaveBeenCalled();
+    });
+
+    it("adopts the scan's row when the content it already holds is the unit's own part 2", async () => {
+      const parts = [1, 2].map((part) => ({
+        folderPath: '/folder',
+        absolutePath: `/folder/part-${part}.mp3`,
+        relPath: `folder/part-${part}.mp3`,
+        format: 'mp3',
+        sizeBytes: 10,
+      }));
+      selectLimit
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 77, primaryFileId: 420, status: 'present', formatPriority: ['mp3'] }])
+        .mockResolvedValueOnce([{ id: 421 }]);
+
+      const result = await service.createUnitBookRecords(1, 2, parts);
+
+      expect(result.bookIds).toEqual([77]);
+      const otherContent = new PgDialect().sqlToQuery(selectWhere.mock.calls[2]![0] as SQL);
+      expect(otherContent.sql).toContain('not in');
+      expect(otherContent.params).toEqual(expect.arrayContaining(['/folder/part-1.mp3', '/folder/part-2.mp3']));
+    });
+
+    it('refuses to move a file row that another book already holds', async () => {
+      selectLimit
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockResolvedValueOnce([]);
+      insertBookFilesReturning.mockResolvedValueOnce([]);
+
+      await expect(service.createBookRecord(1, 2, '/folder', '/folder/book.epub', 'folder/book.epub', 'epub', 10)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      const update = insertBookFilesOnConflict.mock.calls[0]![0] as { setWhere: SQL };
+      expect(new PgDialect().sqlToQuery(update.setWhere).sql).toBe('"book_files"."book_id" = $1');
+      expect(updateBooksSet).not.toHaveBeenCalledWith({ primaryFileId: expect.anything() });
     });
   });
 

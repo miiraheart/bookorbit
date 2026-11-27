@@ -125,6 +125,34 @@ describe('auto-grab picks the most popular eligible release', () => {
   });
 });
 
+describe('auto-grab keeps match quality ahead of popularity', () => {
+  const dune = scoring({ title: 'Dune', authors: ['Frank Herbert'] });
+  const duneItem = (overrides: Partial<ReleaseCandidate>) =>
+    item({ title: 'Frank Herbert - Dune [epub]', bookTitle: 'Dune', author: 'Frank Herbert', ...overrides }, dune);
+  const options = { request: { title: 'Dune', authors: ['Frank Herbert'] } };
+
+  it.each([
+    ['a different author', 'Brian Herbert'],
+    ['a co-listed author', 'Frank Herbert; Brian Herbert'],
+  ])('grabs the correct release over the same title by %s with 10000 downloads', async (_label, author) => {
+    const wrong = duneItem({ guid: 'wrong', title: `${author} - Dune [epub]`, author, grabs: 10_000 });
+    const rightMam = duneItem({ ...MAM_254, guid: 'mam-45', seeders: 45 });
+    const rightAa = duneItem({ guid: 'aa-900', grabs: 900 });
+
+    expect(wrong.score).toBeGreaterThanOrEqual(80);
+    expect(await grabbed([[wrong, rightMam]], options)).toBe('mam-45');
+    expect(await grabbed([[wrong, rightAa]], options)).toBe('aa-900');
+  });
+
+  it('grabs 45 seeders over 1 seeder with 5000 completions of the same book', async () => {
+    const thin = item({ ...MAM_254, guid: 'mam-1', seeders: 1, grabs: 5000, freeleech: true });
+    const healthy = item({ ...MAM_254, guid: 'mam-45', seeders: 45 });
+
+    expect(thin.score).toBeGreaterThanOrEqual(80);
+    expect(await grabbed([[thin, healthy]])).toBe('mam-45');
+  });
+});
+
 describe('auto-grab takes a full match held under the floor by popularity alone', () => {
   it('grabs a lone correct AA EPUB with 12 downloads', async () => {
     const lone = item({ guid: 'aa-12', grabs: 12 });
@@ -185,6 +213,13 @@ describe('auto-grab takes a full match held under the floor by popularity alone'
     expect(titleOnly.reasons.some((reason) => reason.code === 'titleMatch')).toBe(true);
     expect(titleOnly.score).toBeLessThan(80);
     expect(await grabbed([[titleOnly]], { request: { authors: [] } })).toBeNull();
+  });
+
+  it('does not count a full match when the request names no language', async () => {
+    const lone = item({ guid: 'aa-de', language: 'de', grabs: 1 }, scoring({ language: null }));
+
+    expect(lone.score).toBeLessThan(80);
+    expect(await grabbed([[lone]], { request: { language: null } })).toBeNull();
   });
 
   it('does not count a release whose language is unstated when the request names one', async () => {

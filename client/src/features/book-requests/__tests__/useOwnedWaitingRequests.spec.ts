@@ -10,7 +10,13 @@ vi.mock('@/lib/api', () => ({
 }))
 
 import { api } from '@/lib/api'
-import { ownershipQuery, useOwnedWaitingRequests, waitsForRelease } from '../composables/useOwnedWaitingRequests'
+import {
+  ownedAwaitingPickRows,
+  ownershipQuery,
+  useOwnedWaitingRequests,
+  waitsForRelease,
+  withoutOwnedPick,
+} from '../composables/useOwnedWaitingRequests'
 
 const mockApi = vi.mocked(api)
 
@@ -48,6 +54,33 @@ describe('waitsForRelease', () => {
     expect(waitsForRelease(request({ status: 'pending' }))).toBe(false)
     expect(waitsForRelease(request({ mediaKind: 'comic' }))).toBe(false)
     expect(waitsForRelease(request({ download: { status: 'downloading' } as BookRequestItem['download'] }))).toBe(false)
+  })
+
+  it('leaves out a request aimed at a book already on the shelf, such as a format upgrade', () => {
+    expect(waitsForRelease(request({ targetBookId: 434 }))).toBe(false)
+    expect(waitsForRelease(request({ targetBookId: null }))).toBe(true)
+  })
+})
+
+describe('withoutOwnedPick', () => {
+  const half = (id: number) => ({ id }) as never
+  const model = (kind: 'pick' | 'approve', ids: number[]) => ({ step: { kind, halves: ids.map(half) }, groups: [] })
+
+  it('drops the pick step when every half it reaches is owned, and keeps the halves still needed', () => {
+    const owned = new Map([[1, 434]])
+    expect(withoutOwnedPick(model('pick', [1]), owned).step).toBeNull()
+    expect(withoutOwnedPick(model('pick', [1, 2]), owned).step?.halves).toEqual([half(2)])
+    expect(withoutOwnedPick(model('approve', [1]), owned).step?.kind).toBe('approve')
+    expect(withoutOwnedPick(model('pick', [1]), undefined).step?.kind).toBe('pick')
+  })
+})
+
+describe('ownedAwaitingPickRows', () => {
+  it('counts rows awaiting a manual pick only when every awaiting half is owned', () => {
+    const awaiting = (id: number) => request({ id, failureCode: 'AUTOMATION_DISABLED' })
+    const owned = new Map([[1, 434]])
+    expect(ownedAwaitingPickRows([awaiting(1), awaiting(2), request({ id: 3 })], owned)).toBe(1)
+    expect(ownedAwaitingPickRows([request({ id: 1 })], owned)).toBe(0)
   })
 })
 

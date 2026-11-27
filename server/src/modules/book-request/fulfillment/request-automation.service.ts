@@ -28,8 +28,7 @@ import { BOOK_REQUEST_DOWNLOAD_FAILED, BookRequestEventsService } from '../book-
 import { BookRequestNotifier } from '../book-request-notifier.service';
 import { BookRequestRepository } from '../book-request.repository';
 import { bookRequestSearchIsbns, type IndexerSearchMode, IndexerSearchService } from '../indexers/indexer-search.service';
-import { comparePopularity } from '../indexers/release-popularity';
-import { fullMatchShortOnPopularity } from './auto-grab-full-match';
+import { compareForAutoGrab, fullMatchShortOnPopularity } from './auto-grab-full-match';
 import { BookRequestDownloadRepository } from './book-request-download.repository';
 import { grabFailureCode, RequestAlreadyClaimedException, RequestFulfillmentService } from './request-fulfillment.service';
 import { RequestAutomationSearchDelay } from './request-automation-search-delay.service';
@@ -482,11 +481,9 @@ export class RequestAutomationService implements OnModuleInit {
         if (!current || release.score > current.score) releases.set(key, release);
       }
 
-      // Most popular first among what clears, so a well downloaded or well seeded copy is preferred
-      // to a marginally higher scoring one that few people have fetched.
-      const ranked = [...releases.values()].sort(
-        (a, b) => compareByTier(a.tier, b.tier) || comparePopularity(a, b) || b.score - a.score || (b.seeders ?? -1) - (a.seeders ?? -1),
-      );
+      // Most popular first among the certain matches, so a well downloaded or well seeded copy is
+      // preferred to a marginally higher scoring one that few people have fetched.
+      const ranked = [...releases.values()].sort((a, b) => compareByTier(a.tier, b.tier) || compareForAutoGrab(a, b));
 
       // A release matching no tier is never grabbed unattended. It stays in the picker for a person
       // to choose, which is the whole point of the untiered state: the operator said what they want,

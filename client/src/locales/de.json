@@ -8763,7 +8763,7 @@
       "MEDIUM_UNCOVERED": "Keine aktivierte Suchquelle enthält diese Art von Buch, daher wurde für diese Anfrage nicht gesucht",
       "PROFILE_EXCLUDED_ALL": "Keine Veröffentlichung entsprach dem Profil für dieses Medium, daher muss für dieses Medium eine Veröffentlichung von Hand ausgewählt werden",
       "ALL_TRIED": "Jede Veröffentlichung, die gut genug ist, um sie sich zu schnappen, wurde bereits ausprobiert, daher muss diese Veröffentlichung von Hand ausgewählt werden",
-      "BELOW_SCORE_FLOOR": "Keine Veröffentlichung wurde mit {floor} oder besser bewertet, daher benötigt diese eine handverlesene Veröffentlichung",
+      "BELOW_SCORE_FLOOR": "Bei der Suche wurde keine Veröffentlichung hoch genug bewertet, um automatisch geladen zu werden, daher benötigt diese eine handverlesene Veröffentlichung",
       "ALL_BLOCKED": "Jede Veröffentlichung, die gut genug war, um zu greifen, wurde durch einen früheren Fehler ausgeschlossen, daher muss diese Version von Hand ausgewählt werden",
       "ABANDONED": "Es wurde keine Veröffentlichung ausgewählt, daher wurde dieser Download nicht gestartet"
     },

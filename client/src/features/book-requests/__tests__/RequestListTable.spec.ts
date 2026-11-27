@@ -133,9 +133,10 @@ describe('RequestListTable', () => {
     expect(wrapper.get('table tbody').text()).not.toContain('Automatic grabbing is off')
   })
 
-  it('says when the floor was applied rather than quoting it as the current one', () => {
+  it('says when the floor was applied without quoting a floor that may have changed since', () => {
     const wrapper = render([request({ status: 'approved', failureCode: 'BELOW_SCORE_FLOOR', failureMeta: { floor: 85 }, matchedBookId: null })])
-    expect(wrapper.get('table tbody').text()).toContain('When this was searched, no release scored 85 or better')
+    expect(wrapper.get('table tbody').text()).toContain('When this was searched, no release scored high enough to grab automatically')
+    expect(wrapper.get('table tbody').text()).not.toContain('85')
   })
 
   it('says she already has a waiting book and links to that copy', () => {
@@ -145,6 +146,13 @@ describe('RequestListTable', () => {
     expect(wrapper.get('table tbody').text()).toContain('You already have this in your library')
     expect(wrapper.get('table tbody').text()).not.toContain('no release scored')
     expect(wrapper.findAllComponents(RouterLinkStub)[0]?.props('to')).toEqual({ name: 'book-detail', params: { bookId: 434 } })
+  })
+
+  it('does not offer a pick for a waiting book she already has', () => {
+    const waiting = request({ status: 'approved', failureCode: 'AUTOMATION_DISABLED', matchedBookId: null })
+    expect(render([waiting]).get('table tbody td:last-child button').text()).toBe('Pick release')
+    const wrapper = render([waiting], { ownedBookIds: new Map([[1613, 434]]) })
+    expect(wrapper.findAll('table tbody td:last-child button').map((button) => button.text())).not.toContain('Pick release')
   })
 
   it('offers the next step as one button and keeps it out of the menu', () => {

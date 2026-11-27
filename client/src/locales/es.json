@@ -9252,7 +9252,7 @@
       "MEDIUM_UNCOVERED": "Ninguna fuente de búsqueda activa lleva este tipo de libro, por lo que no se ha buscado nada para esta solicitud",
       "PROFILE_EXCLUDED_ALL": "Ninguna versión coincide con el perfil de este medio, por lo que este necesita una versión escogida a mano",
       "ALL_TRIED": "Ya se han probado todas las versiones que cumplen los requisitos para descargarlas, así que hay que elegir una versión manualmente.",
-      "BELOW_SCORE_FLOOR": "Ninguna versión obtuvo una puntuación de {floor} o superior, así que hay que elegir una versión manualmente.",
+      "BELOW_SCORE_FLOOR": "Al buscar, ninguna versión obtuvo una puntuación suficiente para descargarse automáticamente, así que hay que elegir una versión manualmente.",
       "ALL_BLOCKED": "Todas las versiones que cumplían los requisitos para descargarlas fueron descartadas debido a un fallo anterior, así que hay que elegir una versión manualmente",
       "ABANDONED": "No se ha elegido ninguna versión, por lo que esta descarga no se ha iniciado"
     },

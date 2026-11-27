@@ -8728,7 +8728,7 @@
       "MEDIUM_UNCOVERED": "Nicio sursă de căutare activată nu are acest tip de carte, deci nu a fost căutat nimic pentru această solicitare",
       "PROFILE_EXCLUDED_ALL": "Niciun document nu corespunde profilului pentru acest mediu, astfel încât acesta are nevoie de o lansare aleasă de mână",
       "ALL_TRIED": "Fiecare produs suficient pentru a prinde a fi încercat deja, astfel încât acesta are nevoie de o lansare aleasă de mână",
-      "BELOW_SCORE_FLOOR": "Nici un scor de lansare {floor} sau mai bun, astfel încât acesta are nevoie de o lansare aleasă manual",
+      "BELOW_SCORE_FLOOR": "La căutare, nicio lansare nu a obținut un scor suficient pentru a fi preluată automat, așa că aceasta are nevoie de o lansare aleasă manual",
       "ALL_BLOCKED": "Fiecare bun de eliberare destul de bun pentru a prinde a fi exclus de un eșec mai devreme, deci acesta are nevoie de o lansare aleasă manual",
       "ABANDONED": "Nu a fost selectată nicio versiune, deci această descărcare nu a început"
     },

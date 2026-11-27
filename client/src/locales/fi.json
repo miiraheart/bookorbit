@@ -8726,7 +8726,7 @@
       "MEDIUM_UNCOVERED": "Ei käytössä olevaa hakulähdettä kuljettaa tällaista kirjaa, joten mitään ei ole haettu tätä pyyntöä",
       "PROFILE_EXCLUDED_ALL": "Mikään julkaisu ei täsmää tämän välineen profiiliin, joten tämä tarvitsee käsin poimitun julkaisun",
       "ALL_TRIED": "Jokainen julkaisu tarpeeksi hyvä napata on jo kokeillut, joten tämä tarvitsee julkaisu poimittu käsin",
-      "BELOW_SCORE_FLOOR": "Ei yhtään versiota {floor} tai parempi, joten tämä tarvitsee käsin poimitun julkaisun",
+      "BELOW_SCORE_FLOOR": "Haun aikana mikään julkaisu ei saanut tarpeeksi korkeaa pistemäärää automaattiseen lataukseen, joten tämä tarvitsee käsin valitun julkaisun",
       "ALL_BLOCKED": "Jokainen vapauttaa tarpeeksi hyvä napata suljettiin pois aikaisempi vika, joten tämä tarvitsee vapautus poimittu käsin",
       "ABANDONED": "Yhtään versiota ei valittu, joten latausta ei aloitettu"
     },

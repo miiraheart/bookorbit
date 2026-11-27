@@ -804,7 +804,7 @@ function credits(release: ReleaseCandidateItem): ReleaseCandidateItem['reasons']
 }
 
 function reasonText(reason: ReleaseCandidateItem['reasons'][number]): string {
-  return t(`bookRequests.releases.reasons.${reason.code}`, { detail: reason.detail ?? '' })
+  return t(`bookRequests.releases.reasons.${reason.code}`, { detail: reason.detail ?? '', count: Number(reason.detail ?? 0) })
 }
 
 function reasonPoints(points: number): string {

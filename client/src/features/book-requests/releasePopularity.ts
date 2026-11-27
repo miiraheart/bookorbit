@@ -19,12 +19,9 @@ function logShare(count: number | null | undefined, saturation: number): number 
   return Math.min(1, Math.log10(count + 1) / Math.log10(saturation + 1))
 }
 
+/** A swarm by its seeders alone, a direct source by its downloads, as the server ranks them. */
 export function popularityShare(release: PopularityCounts): number | null {
-  const seeders = logShare(release.seeders, SEEDER_SATURATION)
-  const grabs = logShare(release.grabs, GRABS_SATURATION)
-  if (seeders === null) return grabs
-  if (grabs === null) return seeders
-  return Math.max(seeders, grabs)
+  return logShare(release.seeders, SEEDER_SATURATION) ?? logShare(release.grabs, GRABS_SATURATION)
 }
 
 export function hasPopularity(release: PopularityCounts): boolean {

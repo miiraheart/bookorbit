@@ -8807,7 +8807,7 @@
       "MEDIUM_UNCOVERED": "Er is geen ingeschakelde zoekbron met dit soort boeken, dus er is niets gezocht voor dit verzoek",
       "PROFILE_EXCLUDED_ALL": "Geen enkele release komt overeen met het profiel voor dit medium, dus deze heeft een handmatig geselecteerde release nodig",
       "ALL_TRIED": "Elke release die goed genoeg is om te pakken, is al geprobeerd, dus deze heeft een release nodig die met de hand is uitgekozen",
-      "BELOW_SCORE_FLOOR": "Geen enkele release heeft een score van {floor} of beter, dus deze heeft een release nodig die met de hand is uitgekozen",
+      "BELOW_SCORE_FLOOR": "Bij het zoeken scoorde geen enkele release hoog genoeg om automatisch te worden opgehaald, dus deze heeft een release nodig die met de hand is uitgekozen",
       "ALL_BLOCKED": "Elke release die goed genoeg was om te pakken, werd uitgesloten door een eerdere mislukking, dus deze heeft een release nodig die met de hand is uitgekozen",
       "ABANDONED": "Er is geen release gekozen, dus deze download is niet gestart"
     },

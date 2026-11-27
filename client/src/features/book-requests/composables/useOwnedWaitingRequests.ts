@@ -9,15 +9,18 @@ import {
 } from '@bookorbit/types'
 import { titleWithoutSeries } from '@/features/goodreads/lib/related'
 import { apiJson, jsonBody } from '@/lib/api-json'
-import { flattenRequestRows } from '../requestPair'
+import { flattenRequestRows, rowRequests } from '../requestPair'
+import type { RowActionModel } from '../requestSelection'
 
 const BATCH = 50
 
 type WaitingRequest = BookRequestItem & { mediaKind: BookRequestMediaKind }
 
+/** A request aimed at a book already on the shelf, such as a format upgrade, is not a duplicate. */
 export function waitsForRelease(request: BookRequestItem): request is WaitingRequest {
   const transfer = request.download?.status
   return (
+    request.targetBookId == null &&
     isGrabbableBookRequestStatus(request.status) &&
     (BOOK_REQUEST_MEDIA_KINDS as readonly string[]).includes(request.mediaKind) &&
     transfer !== 'queued' &&
@@ -82,5 +85,25 @@ export function useOwnedWaitingRequests(rows: Readonly<Ref<readonly BookRequestI
       ),
   )
 
-  return { ownedBookIds }
+  const ownedAwaitingPick = computed(() => ownedAwaitingPickRows(rows.value, ownedBookIds.value))
+
+  return { ownedBookIds, ownedAwaitingPick }
+}
+
+/** A pick is not asked of a request whose book is already on the shelf. */
+export function withoutOwnedPick(model: RowActionModel, owned: ReadonlyMap<number, number> | undefined): RowActionModel {
+  if (model.step?.kind !== 'pick' || !owned?.size) return model
+  const halves = model.step.halves.filter((half) => !owned.has(half.id))
+  return { ...model, step: halves.length > 0 ? { ...model.step, halves } : null }
+}
+
+/**
+ * Rows on this page the server counts as awaiting a manual pick although every waiting half is
+ * already owned. Only the loaded page is known, so the banner count drops by these alone.
+ */
+export function ownedAwaitingPickRows(rows: readonly BookRequestItem[], owned: ReadonlyMap<number, number>): number {
+  return rows.filter((row) => {
+    const awaiting = rowRequests(row).filter((request) => request.status === 'approved' && request.failureCode === 'AUTOMATION_DISABLED')
+    return awaiting.length > 0 && awaiting.every((request) => owned.has(request.id))
+  }).length
 }

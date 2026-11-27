@@ -699,6 +699,19 @@ describe('ReleasePickerPanel', () => {
     expect(row.text()).not.toContain('Jan')
   })
 
+  it('writes the downloads score reason with thousands separators and a singular form', async () => {
+    const reason = (detail: string) => ({ code: 'downloads' as const, points: 12, detail })
+    const many = release({ guid: 'many', seeders: null, grabs: 10207, reasons: [reason('10207')] })
+    const one = release({ guid: 'one', seeders: null, grabs: 1, reasons: [reason('1')] })
+    const wrapper = await render({ ...MIXED, releases: [many, one] })
+    for (const row of releaseRows(wrapper)) await row.get('button[aria-expanded]').trigger('click')
+
+    // Once in the facts line and once in the score breakdown.
+    expect(wrapper.text().split('10,207 downloads')).toHaveLength(3)
+    expect(wrapper.text()).not.toContain('10207')
+    expect(wrapper.text()).not.toContain('1 downloads')
+  })
+
   it('uses singular forms for one seeder and one chapter', async () => {
     const item = release({
       seeders: 1,

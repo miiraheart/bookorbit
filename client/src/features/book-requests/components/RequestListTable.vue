@@ -10,6 +10,7 @@ import { requestBookCoverSources } from '../requestBookCover'
 import { requestMediaColor, requestMediaIcon } from '../requestMedia'
 import { orderedHalves, rowRequests } from '../requestPair'
 import { requestFailureText, requestOutcome } from '../requestOutcome'
+import { withoutOwnedPick } from '../composables/useOwnedWaitingRequests'
 import { currentRequestProgress, requestPresentationStatus } from '../requestPipeline'
 import {
   rowActionModel,
@@ -67,7 +68,7 @@ const rowViews = computed(() => {
   const views = new Map<number, RowView>()
   for (const row of props.requests) {
     const halves = rowSelectionHalves(row, props.viewer.userId)
-    views.set(row.id, { halves, model: rowActionModel(halves, props.viewer) })
+    views.set(row.id, { halves, model: withoutOwnedPick(rowActionModel(halves, props.viewer), props.ownedBookIds) })
   }
   return views
 })

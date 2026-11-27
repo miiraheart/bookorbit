@@ -70,9 +70,18 @@ describe('release popularity', () => {
     expect(popularityShare({ seeders: null })).toBeNull();
   });
 
-  it('keeps the seeders reason when the swarm is the stronger signal, and downloads when they are', () => {
+  it('judges a swarm by its seeders alone, however many past completions it reports', () => {
     expect(reason(scoreRelease(torrent({ grabs: 3 }), request()), 'seeders')?.detail).toBe('254');
-    expect(reason(scoreRelease(torrent({ seeders: 2, grabs: 4000 }), request()), 'downloads')?.detail).toBe('4000');
+    const thin = scoreRelease(torrent({ seeders: 2, grabs: 4000 }), request());
+    expect(reason(thin, 'downloads')).toBeUndefined();
+    expect(reason(thin, 'seeders')?.detail).toBe('2');
+  });
+
+  it('ranks 45 seeders above 1 seeder with 5000 completions', () => {
+    expect(comparePopularity({ seeders: 45, grabs: null }, { seeders: 1, grabs: 5000 })).toBeLessThan(0);
+    expect(scoreRelease(torrent({ seeders: 45 }), request()).score).toBeGreaterThan(
+      scoreRelease(torrent({ seeders: 1, grabs: 5000 }), request()).score,
+    );
   });
 
   it('saturates downloads at 5000, so 5000 against 9000 adds nothing but 10 against 500 does', () => {
@@ -109,7 +118,8 @@ describe('popularity share table', () => {
     [null, 200, 0.6226],
     [null, 5000, 1],
     [null, 10207, 1],
-    [10, 200, 0.6226],
+    [10, 200, 0.5833],
+    [1, 5000, 0.1686],
     [30, 12, 0.8353],
   ])('seeders %s and downloads %s give share %s, the same table the client picker sorts by', (seeders, grabs, share) => {
     const actual = popularityShare({ seeders, grabs });

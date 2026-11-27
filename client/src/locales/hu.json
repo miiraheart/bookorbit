@@ -10398,7 +10398,7 @@
       "MEDIUM_UNCOVERED": "Egyetlen engedélyezett keresési forrás sem tartalmaz ilyen könyvet, ezért ehhez a kéréshez nem történt keresés",
       "PROFILE_EXCLUDED_ALL": "Egyetlen kiadásváltozat sem felelt meg ennek a médiatípusnak a profiljának, ezért ehhez kézzel kell kiválasztani egy kiadásváltozatot",
       "ALL_TRIED": "Minden begyűjtésre alkalmas kiadásváltozattal próbálkozott már a rendszer, ezért ehhez kézzel kell kiválasztani egy kiadásváltozatot",
-      "BELOW_SCORE_FLOOR": "Egyetlen kiadásváltozat sem ért el legalább {floor} pontot, ezért ehhez kézzel kell kiválasztani egy kiadásváltozatot",
+      "BELOW_SCORE_FLOOR": "A kereséskor egyetlen kiadásváltozat sem ért el elég magas pontszámot az automatikus letöltéshez, ezért ehhez kézzel kell kiválasztani egy kiadásváltozatot",
       "ALL_BLOCKED": "Minden begyűjtésre alkalmas kiadásváltozat kiesett egy korábbi hiba miatt, ezért ehhez kézzel kell kiválasztani egy kiadásváltozatot",
       "ABANDONED": "Nem lett kiválasztva kiadásváltozat, ezért ez a letöltés nem indult el"
     },

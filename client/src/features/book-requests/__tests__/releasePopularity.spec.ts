@@ -22,7 +22,8 @@ describe('popularityShare', () => {
     [null, 200, 0.6226],
     [null, 5000, 1],
     [null, 10207, 1],
-    [10, 200, 0.6226],
+    [10, 200, 0.5833],
+    [1, 5000, 0.1686],
     [30, 12, 0.8353],
   ])('seeders %s and downloads %s give share %s, as the server ranks them', (seeders, grabs, share) => {
     const actual = popularityShare({ seeders, grabs })

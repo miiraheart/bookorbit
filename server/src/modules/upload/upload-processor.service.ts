@@ -188,6 +188,7 @@ export class UploadProcessorService {
         libraryFolderId,
         { folderPath, absolutePath, relPath, format, sizeBytes, ...fileOptions },
         measured,
+        [absolutePath],
       );
       if (upserted.joinedBook && (fileOptions.role ?? 'content') === 'content') {
         await this.reselectPrimaryFile(tx, upserted.joinedBook);
@@ -219,6 +220,7 @@ export class UploadProcessorService {
     const measured: MeasuredFile[] = [];
     for (const file of files) measured.push(await this.measureFile(file.absolutePath, file.format));
 
+    const unitPaths = files.map((file) => file.absolutePath);
     return this.db.transaction(async (tx) => {
       const bookIds: number[] = [];
       const createdBookIds: number[] = [];
@@ -227,7 +229,7 @@ export class UploadProcessorService {
       const audioBookIds = new Set<number>();
 
       for (const [index, file] of files.entries()) {
-        const result = await this.upsertBookFile(tx, libraryId, libraryFolderId, file, measured[index]!);
+        const result = await this.upsertBookFile(tx, libraryId, libraryFolderId, file, measured[index]!, unitPaths);
         if (!bookIds.includes(result.bookId)) bookIds.push(result.bookId);
         if (isAudioFormat(file.format)) audioBookIds.add(result.bookId);
         if (result.createdBook) createdBookIds.push(result.bookId);
@@ -296,6 +298,7 @@ export class UploadProcessorService {
     libraryFolderId: number,
     file: UnitBookFileInput,
     measured: MeasuredFile,
+    unitPaths: readonly string[],
   ): Promise<{ bookId: number; createdBook: boolean; fileId: number; createdFile: boolean; joinedBook: JoinedBook | null }> {
     const { folderPath, absolutePath, relPath, format, sizeBytes } = file;
     const role = file.role ?? 'content';
@@ -343,7 +346,7 @@ export class UploadProcessorService {
       };
     }
 
-    const book = await insertOrAdoptBookRow(tx, { libraryId, libraryFolderId, folderPath }, absolutePath);
+    const book = await insertOrAdoptBookRow(tx, { libraryId, libraryFolderId, folderPath }, unitPaths);
     if (!book) throw new InternalServerErrorException('Failed to create book record');
 
     // Always create an empty metadata row so joins never return null (mirrors scanner behaviour).
@@ -352,9 +355,9 @@ export class UploadProcessorService {
     const [fileRow] = await tx
       .insert(bookFiles)
       .values({ ...values, bookId: book.id })
-      .onConflictDoUpdate({ target: bookFiles.absolutePath, set: { ...values, bookId: book.id } })
+      .onConflictDoUpdate({ target: bookFiles.absolutePath, set: { ...values, bookId: book.id }, setWhere: eq(bookFiles.bookId, book.id) })
       .returning({ id: bookFiles.id });
-    if (!fileRow) throw new InternalServerErrorException('Failed to create book file');
+    if (!fileRow) throw new ConflictException('This file is already filed under another book');
 
     await tx.update(books).set({ primaryFileId: fileRow.id }).where(eq(books.id, book.id));
 

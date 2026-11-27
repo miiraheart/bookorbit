@@ -98,7 +98,7 @@ const { progressByRequest, onRequestsChanged, pruneSettledProgress } = useBookRe
 const isListTab = computed(() => activeTab.value !== 'search')
 const activeList = computed(() => (activeTab.value === 'all' ? all : mine))
 const activeItems = computed(() => activeList.value.items.value)
-const { ownedBookIds } = useOwnedWaitingRequests(activeItems)
+const { ownedBookIds, ownedAwaitingPick } = useOwnedWaitingRequests(activeItems)
 const tabCounts = computed<Record<RequestsTab, number | null>>(() => ({
   search: null,
   mine: requestSummary.value?.mineTotal ?? null,
@@ -720,7 +720,7 @@ function handleBulkRun(action: RequestAction) {
 
 // ── Banner: automation is off ───────────────────────────────────────────────
 
-const awaitingManualPick = computed(() => activeList.value.viewCounts.value.awaitingManualPick)
+const awaitingManualPick = computed(() => Math.max(0, activeList.value.viewCounts.value.awaitingManualPick - ownedAwaitingPick.value))
 const autoGrabOff = computed(() => !activeList.value.viewCounts.value.autoGrabEnabled)
 const showAutomationBanner = computed(
   () =>
@@ -736,7 +736,7 @@ async function pickAwaitingReleases() {
       toast.error(t('bookRequests.errors.selectAllFailed'))
       return
     }
-    startPickRun(result.items.filter((entry) => actionReaches('pick', entry, viewer.value)))
+    startPickRun(result.items.filter((entry) => actionReaches('pick', entry, viewer.value) && !ownedBookIds.value.has(entry.id)))
   } finally {
     bannerBusy.value = false
   }

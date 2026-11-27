@@ -10401,7 +10401,7 @@
       "MEDIUM_UNCOVERED": "Nenhuma fonte de pesquisa habilitada traz este tipo de livro, portanto nada foi pesquisado por esta solicitação",
       "PROFILE_EXCLUDED_ALL": "Nenhuma liberação corresponde ao perfil para esse meio, portanto este precisa de um lançamento escolhido manualmente",
       "ALL_TRIED": "Cada lançamento bom o suficiente para pegar já foi tentado, então este precisa de um lançamento escolhido manualmente",
-      "BELOW_SCORE_FLOOR": "Nenhum lançamento marcou {floor} ou melhor, então este precisa de um lançamento escolhido manualmente",
+      "BELOW_SCORE_FLOOR": "Na pesquisa, nenhum lançamento obteve pontuação suficiente para ser obtido automaticamente, então este precisa de um lançamento escolhido manualmente",
       "ALL_BLOCKED": "Cada lançamento bom o bastante para aprovação foi descartado por uma falha anterior, então esse precisa de um lançamento selecionado manualmente",
       "ABANDONED": "Nenhuma versão foi selecionada, então este download não foi iniciado"
     },

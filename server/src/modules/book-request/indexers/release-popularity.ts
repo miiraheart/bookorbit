@@ -28,13 +28,12 @@ export function grabsShare(grabs: number | null | undefined): number | null {
   return logShare(grabs, GRABS_SATURATION);
 }
 
-/** The better of the two signals. Null only when the source stated neither, never read as zero. */
+/**
+ * A swarm source is judged by its seeders alone: past completions say nothing about who can seed it
+ * now. Downloads count only where there is no swarm. Null when the source stated neither.
+ */
 export function popularityShare(release: PopularityCounts): number | null {
-  const seeders = seederShare(release.seeders);
-  const grabs = grabsShare(release.grabs);
-  if (seeders === null) return grabs;
-  if (grabs === null) return seeders;
-  return Math.max(seeders, grabs);
+  return seederShare(release.seeders) ?? grabsShare(release.grabs);
 }
 
 /** Most popular first; a release with no stated count sorts below any that has one. */
