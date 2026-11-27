@@ -6,6 +6,7 @@ import type { BookRequestMediaKind, GoodreadsShelfRow } from '@bookorbit/types'
 import BookCoverArtwork from '@/features/book/components/BookCoverArtwork.vue'
 import BookCoverSurface from '@/features/book/components/BookCoverSurface.vue'
 import GoodreadsRemoteMenu from './GoodreadsRemoteMenu.vue'
+import type { ReadAlongAccess } from '../composables/useReadAlongAccess'
 import { GOODREADS_MESSAGE_ROOT } from '../i18n'
 
 /** The list row of a Goodreads book with no library card, laid out like BookListRow beside the owned rows. */
@@ -16,7 +17,7 @@ const props = defineProps<{
   unavailable?: boolean
   selectionMode?: boolean
   selected?: boolean
-  canReadAlong?: boolean
+  readAlongAccess?: ReadAlongAccess | null
   readDate?: string | null
   firstSeen: string
 }>()
@@ -128,7 +129,7 @@ function handleToggle() {
           :can-request="canRequest"
           :busy="busy"
           :selected="selected"
-          :can-read-along="canReadAlong"
+          :read-along-access="readAlongAccess"
           @request="handleRequest"
           @read-along="handleReadAlong"
           @info="handleOpen"

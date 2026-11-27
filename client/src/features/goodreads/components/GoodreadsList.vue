@@ -50,7 +50,7 @@ function handleRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind) {
         :read-date="page.readDate(row)"
         :first-seen="page.firstSeen(row)"
         @open="page.handleOpen(row)"
-        :can-read-along="page.canReadAlong"
+        :read-along-access="page.readAlongAccess"
         @request="handleRequest(row, $event)"
         @read-along="page.openReadAlong(row)"
         @toggle="page.handleToggleRow(row.key)"

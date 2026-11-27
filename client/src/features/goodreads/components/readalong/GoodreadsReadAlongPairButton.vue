@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Download, ListChecks } from '@lucide/vue'
 import type { BookCard, GoodreadsShelfRow } from '@bookorbit/types'
 import ReadAlongPairPanel from './ReadAlongPairPanel.vue'
-import { useCanReadAlong } from '../../composables/useCanReadAlong'
+import { useReadAlongAccess } from '../../composables/useReadAlongAccess'
 import { GOODREADS_MESSAGE_ROOT } from '../../i18n'
 import { readAlongPlan } from '../../lib/readAlongPlan'
 
@@ -13,8 +13,8 @@ const props = defineProps<{ row: GoodreadsShelfRow; cards: BookCard[] }>()
 const emit = defineEmits<{ changed: [] }>()
 
 const { t } = useI18n()
-const canReadAlong = useCanReadAlong()
-const plan = computed(() => (canReadAlong.value ? readAlongPlan(props.row, props.cards).kind : 'none'))
+const access = useReadAlongAccess()
+const plan = computed(() => (access.value.allowed ? readAlongPlan(props.row, props.cards, access.value.canManage).kind : 'none'))
 const panelOpen = ref(false)
 
 function handleOpen() {

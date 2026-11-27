@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { GOODREADS_MESSAGE_ROOT, goodreadsRequestKeys } from '../i18n'
 import { isLiveRequest } from '../lib/bulk'
 import { readAlongPlan } from '../lib/readAlongPlan'
+import type { ReadAlongAccess } from '../composables/useReadAlongAccess'
 
 type MenuVariant = 'overlay' | 'label' | 'row'
 
@@ -17,7 +18,7 @@ const props = defineProps<{
   canRequest: boolean
   busy?: boolean
   selected?: boolean
-  canReadAlong?: boolean
+  readAlongAccess?: ReadAlongAccess | null
   variant: MenuVariant
 }>()
 
@@ -36,7 +37,7 @@ const TRIGGER_CLASS: Record<MenuVariant, string> = {
 }
 
 const requestKinds = computed(() => (props.canRequest ? BOOK_REQUEST_MEDIA_KINDS.filter((kind) => !isLiveRequest(props.row.requests[kind])) : []))
-const readAlong = computed(() => (props.canReadAlong ? readAlongPlan(props.row, []).kind : 'none'))
+const readAlong = computed(() => (props.readAlongAccess?.allowed ? readAlongPlan(props.row, [], props.readAlongAccess.canManage).kind : 'none'))
 const viewKinds = computed(() => BOOK_REQUEST_MEDIA_KINDS.filter((kind) => props.row.requests[kind]))
 const goodreadsUrl = computed(() => (props.row.goodreadsId ? `https://www.goodreads.com/book/show/${props.row.goodreadsId}` : null))
 

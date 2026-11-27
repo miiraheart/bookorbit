@@ -43,9 +43,10 @@ function row(overrides: Partial<GoodreadsShelfRow> = {}): GoodreadsShelfRow {
   }
 }
 
+const access = { allowed: true, canManage: false }
 const passThrough = { template: '<div><slot /></div>' }
 
-async function mountMenu(props: { row: GoodreadsShelfRow; canRequest?: boolean; canReadAlong?: boolean }) {
+async function mountMenu(props: { row: GoodreadsShelfRow; canRequest?: boolean; readAlongAccess?: { allowed: boolean; canManage: boolean } }) {
   const router = makeRouter()
   await router.push('/')
   const wrapper = mount(GoodreadsRemoteMenu, {
@@ -111,7 +112,7 @@ describe('GoodreadsRemoteMenu', () => {
   })
 
   it('offers Download both for read-along only to someone who may fetch books directly', async () => {
-    const { wrapper } = await mountMenu({ row: row(), canReadAlong: true })
+    const { wrapper } = await mountMenu({ row: row(), readAlongAccess: access })
     expect(wrapper.find('[data-testid="goodreads-menu-read-along"]').text()).toContain(t('goodreads.readAlongStart'))
     await wrapper.find('[data-testid="goodreads-menu-read-along"]').trigger('click')
     expect(wrapper.emitted('readAlong')).toHaveLength(1)
@@ -122,11 +123,11 @@ describe('GoodreadsRemoteMenu', () => {
 
   it('offers Pick releases when both self-serve requests wait for a pick, and nothing once they download', async () => {
     const waiting = { id: 30, status: 'approved' as const, selfServe: true }
-    const { wrapper } = await mountMenu({ row: row({ requests: { ebook: waiting, audiobook: { ...waiting, id: 31 } } }), canReadAlong: true })
+    const { wrapper } = await mountMenu({ row: row({ requests: { ebook: waiting, audiobook: { ...waiting, id: 31 } } }), readAlongAccess: access })
     expect(wrapper.find('[data-testid="goodreads-menu-read-along"]').text()).toContain(t('goodreads.readAlongResume'))
 
     const moving = { ebook: { ...waiting, status: 'downloading' as const }, audiobook: { ...waiting, id: 31, status: 'downloading' as const } }
-    const { wrapper: busy } = await mountMenu({ row: row({ requests: moving }), canReadAlong: true })
+    const { wrapper: busy } = await mountMenu({ row: row({ requests: moving }), readAlongAccess: access })
     expect(has(busy, 'goodreads-menu-read-along')).toBe(false)
   })
 

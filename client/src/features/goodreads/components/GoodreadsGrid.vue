@@ -57,7 +57,7 @@ function handleRequest(row: GoodreadsShelfRow, kind: BookRequestMediaKind) {
         :selection-mode="selectionMode"
         :selected="page.selectedKeys.has(row.key)"
         @open="page.handleOpen(row)"
-        :can-read-along="page.canReadAlong"
+        :read-along-access="page.readAlongAccess"
         @request="handleRequest(row, $event)"
         @read-along="page.openReadAlong(row)"
         @toggle="page.handleToggleRow(row.key)"

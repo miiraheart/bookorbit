@@ -28,7 +28,8 @@ function gt(key: string, params: Record<string, unknown> = {}): string {
 
 const { hasPermission } = usePermissions()
 const language = useRequestLanguageDefault()
-const pair = useReadAlongPair(() => hasPermission(Permission.ManageBookRequests))
+const canManage = () => hasPermission(Permission.ManageBookRequests)
+const pair = useReadAlongPair(canManage)
 const HALVES: BookRequestMediaKind[] = ['audiobook', 'ebook']
 
 const shownHalves = computed(() => HALVES.filter((kind) => pair.owned.value.includes(kind) || pair.requestOf(kind) !== null))
@@ -39,16 +40,23 @@ const sendCount = computed(
   () => pair.requests.value.filter((entry) => pair.pickable(entry.mediaKind) && pair.grabs[entry.mediaKind].state !== 'sent').length,
 )
 
+let changeOwed = false
+
 async function start() {
   const row = props.row
   if (!row) return
-  const plan = readAlongPlan(row, props.cards)
+  const plan = readAlongPlan(row, props.cards, canManage())
   if (plan.kind === 'none') {
     pair.reset()
     return
   }
   await language.load()
+  if (!props.open) return
   await pair.open(row, plan, language.resolveLanguage(null))
+  if (changeOwed) {
+    changeOwed = false
+    emit('changed')
+  }
 }
 
 watch(
@@ -60,8 +68,10 @@ watch(
 )
 
 function close() {
+  pair.stop()
   emit('update:open', false)
-  if (pair.requests.value.length > 0) emit('changed')
+  if (pair.starting.value) changeOwed = true
+  else if (pair.requests.value.length > 0) emit('changed')
 }
 
 function handleOpenChange(open: boolean) {
@@ -70,7 +80,7 @@ function handleOpenChange(open: boolean) {
 
 function finishIfSent() {
   if (!pair.allSent.value) return
-  toast.success(gt('allSent'))
+  toast.success(gt('allSent', { count: pair.requests.value.filter((entry) => pair.grabs[entry.mediaKind].state === 'sent').length }))
   close()
 }
 
@@ -129,6 +139,7 @@ async function handleCancel() {
             :half="pair.pickOf(kind)"
             :release="pair.releaseOf(kind)"
             :grab="pair.grabs[kind]"
+            :same-language="pair.sameLanguage.value"
             @choose="handleChoose(kind, $event)"
             @retry="handleRetry(kind)"
           />

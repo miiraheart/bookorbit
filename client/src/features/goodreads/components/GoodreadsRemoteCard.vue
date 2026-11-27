@@ -6,6 +6,7 @@ import type { BookRequestMediaKind, GoodreadsShelfRow } from '@bookorbit/types'
 import BookCoverArtwork from '@/features/book/components/BookCoverArtwork.vue'
 import BookCoverSurface from '@/features/book/components/BookCoverSurface.vue'
 import GoodreadsRemoteMenu from './GoodreadsRemoteMenu.vue'
+import type { ReadAlongAccess } from '../composables/useReadAlongAccess'
 import { GOODREADS_MESSAGE_ROOT } from '../i18n'
 
 /**
@@ -20,7 +21,7 @@ const props = defineProps<{
   showLabel?: boolean
   selectionMode?: boolean
   selected?: boolean
-  canReadAlong?: boolean
+  readAlongAccess?: ReadAlongAccess | null
 }>()
 
 const emit = defineEmits<{ open: []; request: [kind: BookRequestMediaKind]; readAlong: []; toggle: [] }>()
@@ -153,7 +154,7 @@ function handleToggle() {
                   :can-request="canRequest"
                   :busy="busy"
                   :selected="selected"
-                  :can-read-along="canReadAlong"
+                  :read-along-access="readAlongAccess"
                   @request="handleRequest"
                   @read-along="handleReadAlong"
                   @info="handleOpen"
@@ -174,7 +175,7 @@ function handleToggle() {
             :can-request="canRequest"
             :busy="busy"
             :selected="selected"
-            :can-read-along="canReadAlong"
+            :read-along-access="readAlongAccess"
             @request="handleRequest"
             @read-along="handleReadAlong"
             @info="handleOpen"

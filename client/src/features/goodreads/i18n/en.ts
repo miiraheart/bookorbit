@@ -94,7 +94,7 @@ export const EN = {
     creating: 'Creating the requests',
     nothingToDo: 'Nothing left to download for this book',
     notice:
-      '{count, plural, =0 {These requests are waiting for a pick. Nothing downloads until you press the button below.} one {One request was created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps it for later.} other {# requests were created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps them for later.}}',
+      '{count, plural, =0 {These requests are waiting for a pick. Nothing downloads until you press the button below.} one {One request was created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps it for 6 hours, then it is cancelled if nothing was sent.} other {# requests were created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps them for 6 hours, then they are cancelled if nothing was sent.}}',
     ebook: 'Ebook',
     audiobook: 'Audiobook',
     owned: 'Already in your library',
@@ -125,7 +125,7 @@ export const EN = {
     grabFailed: 'The download client did not take it',
     retry: 'Retry',
     send: '{count, plural, one {Download} other {Download both}}',
-    allSent: 'Both downloads started',
+    allSent: '{count, plural, one {Download started} other {Both downloads started}}',
     close: 'Close',
     cancel: '{count, plural, one {Cancel the new request} other {Cancel the # new requests}}',
     cancelled: '{count, plural, =0 {Nothing was cancelled} one {Request cancelled} other {# requests cancelled}}',

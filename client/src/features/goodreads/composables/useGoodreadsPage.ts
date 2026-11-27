@@ -9,7 +9,7 @@ import { useRequestLanguageDefault } from '@/features/book-requests/composables/
 import { formatDate } from '@/i18n/formatters'
 import { errorMessage } from '@/lib/api-json'
 import { cancelGoodreadsRequests, requestGoodreadsBook } from '../api/goodreads.api'
-import { useCanReadAlong } from './useCanReadAlong'
+import { useReadAlongAccess } from './useReadAlongAccess'
 import { useGoodreadsShelves } from './useGoodreadsShelves'
 import { useGoodreadsSync } from './useGoodreadsSync'
 import { GOODREADS_MESSAGE_ROOT, goodreadsShelfLabel } from '../i18n'
@@ -44,7 +44,7 @@ export function useGoodreadsPage() {
   const { overview, rows, loadOverview, loadRows, patchRow } = shelvesState
 
   const canRequest = computed(() => hasPermission('book_request_access'))
-  const canReadAlong = useCanReadAlong()
+  const readAlongAccess = useReadAlongAccess()
   const sources = computed(() => overview.value?.sources ?? [])
   const currentSource = computed(() => sources.value.find((entry) => entry.id === source.value) ?? null)
   const shelves = computed(() => currentSource.value?.shelves ?? [])
@@ -236,7 +236,7 @@ export function useGoodreadsPage() {
     readAlongRow,
     viewMode,
     canRequest,
-    canReadAlong,
+    readAlongAccess,
     sources,
     currentSource,
     shelves,

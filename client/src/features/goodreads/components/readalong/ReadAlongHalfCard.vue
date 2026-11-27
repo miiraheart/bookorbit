@@ -21,6 +21,7 @@ const props = defineProps<{
   half: ReadAlongHalfPick | null
   release: ReleaseCandidateItem | null
   grab: GrabState
+  sameLanguage?: boolean
 }>()
 
 const emit = defineEmits<{ choose: [guid: string]; retry: [] }>()
@@ -50,7 +51,7 @@ const why = computed(() => {
   const match = matchReason(release)
   return [
     match ? t(`bookRequests.releases.reasons.${match.code}`) : null,
-    props.kind === 'audiobook' ? gt('whyUnabridged') : gt('whyLanguage'),
+    props.kind === 'audiobook' ? gt('whyUnabridged') : props.sameLanguage ? gt('whyLanguage') : null,
   ].filter((entry): entry is string => !!entry)
 })
 

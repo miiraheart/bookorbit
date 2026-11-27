@@ -92,7 +92,7 @@ export const FR: GoodreadsMessages = {
     creating: 'Création des demandes',
     nothingToDo: 'Plus rien à télécharger pour ce livre',
     notice:
-      '{count, plural, =0 {Ces demandes attendent un choix. Rien ne se télécharge avant d’appuyer sur le bouton ci-dessous.} one {Une demande a été créée. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer la garde pour plus tard.} other {# demandes ont été créées. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer les garde pour plus tard.}}',
+      '{count, plural, =0 {Ces demandes attendent un choix. Rien ne se télécharge avant d’appuyer sur le bouton ci-dessous.} one {Une demande a été créée. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer la garde 6 heures, puis elle est annulée si rien n’a été envoyé.} other {# demandes ont été créées. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer les garde 6 heures, puis elles sont annulées si rien n’a été envoyé.}}',
     ebook: 'Livre numérique',
     audiobook: 'Livre audio',
     owned: 'Déjà dans votre bibliothèque',
@@ -123,7 +123,7 @@ export const FR: GoodreadsMessages = {
     grabFailed: 'Le client de téléchargement ne l’a pas accepté',
     retry: 'Réessayer',
     send: '{count, plural, one {Télécharger} other {Télécharger les deux}}',
-    allSent: 'Les deux téléchargements ont démarré',
+    allSent: '{count, plural, one {Téléchargement démarré} other {Les deux téléchargements ont démarré}}',
     close: 'Fermer',
     cancel: '{count, plural, one {Annuler la nouvelle demande} other {Annuler les # nouvelles demandes}}',
     cancelled: '{count, plural, =0 {Rien n’a été annulé} one {Demande annulée} other {# demandes annulées}}',

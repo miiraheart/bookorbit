@@ -1,7 +1,7 @@
 import { computed, reactive, ref } from 'vue'
 import {
   isCancellableBookRequestStatus,
-  isGrabbableBookRequestStatus,
+  normalizeReadAlongLanguage,
   type BookRequestMediaKind,
   type GoodreadsShelfItem,
   type ReleaseCandidateItem,
@@ -12,7 +12,7 @@ import { errorMessage } from '@/lib/api-json'
 import { cancelGoodreadsRequests } from '../api/goodreads.api'
 import { startGoodreadsReadAlong, type ReadAlongRequest } from '../api/readAlong.api'
 import { rankAudiobookReleases, rankEbookReleases, type ReadAlongHalfPick } from '../lib/readAlongPick'
-import type { ReadAlongPlan } from '../lib/readAlongPlan'
+import { canPickFor, type ReadAlongPlan } from '../lib/readAlongPlan'
 
 export type GrabState = { state: 'idle' | 'sending' | 'sent' | 'failed'; reason: string | null }
 
@@ -36,10 +36,7 @@ export function useReadAlongPair(canManage: () => boolean) {
 
   const requestOf = (kind: BookRequestMediaKind) => requests.value.find((entry) => entry.mediaKind === kind) ?? null
   /** A joined half already being fetched or done is shown by its status, not picked again. */
-  const pickable = (kind: BookRequestMediaKind) => {
-    const request = requestOf(kind)
-    return request !== null && isGrabbableBookRequestStatus(request.status)
-  }
+  const pickable = (kind: BookRequestMediaKind) => canPickFor(requestOf(kind) ?? undefined, canManage())
   const created = computed(() => requests.value.filter((entry) => entry.created))
 
   function selected(half: ReadAlongHalfPick | null, kind: BookRequestMediaKind): ReleaseCandidateItem | null {
@@ -55,6 +52,10 @@ export function useReadAlongPair(canManage: () => boolean) {
   const ebookRelease = computed(() => selected(ebook.value, 'ebook'))
   const releaseOf = (kind: BookRequestMediaKind) => (kind === 'audiobook' ? audioRelease.value : ebookRelease.value)
   const pickOf = (kind: BookRequestMediaKind) => (kind === 'audiobook' ? audio.value : ebook.value)
+  const sameLanguage = computed(() => {
+    const language = normalizeReadAlongLanguage(ebookRelease.value?.language)
+    return language !== null && audioRelease.value !== null && language === normalizeReadAlongLanguage(audioRelease.value.language)
+  })
 
   const toSend = computed(() => requests.value.filter((entry) => pickable(entry.mediaKind) && grabs[entry.mediaKind].state !== 'sent'))
   const searching = computed(() => requests.value.some((entry) => pickable(entry.mediaKind) && pickers[entry.mediaKind].loading.value))
@@ -65,6 +66,13 @@ export function useReadAlongPair(canManage: () => boolean) {
   const allSent = computed(
     () => requests.value.length > 0 && toSend.value.length === 0 && requests.value.some((entry) => grabs[entry.mediaKind].state === 'sent'),
   )
+
+  let generation = 0
+
+  /** A press closed before its requests came back still files them, but searches nothing. */
+  function stop() {
+    generation++
+  }
 
   function reset() {
     requests.value = []
@@ -84,11 +92,13 @@ export function useReadAlongPair(canManage: () => boolean) {
     reset()
     owned.value = plan.owned
     workLanguage.value = language
+    const mine = ++generation
     if (plan.kind === 'resume') {
-      requests.value = Object.entries(plan.requestIds).map(([kind, id]) => ({
+      requests.value = Object.entries(plan.requests).map(([kind, state]) => ({
         mediaKind: kind as BookRequestMediaKind,
-        id,
-        status: 'approved',
+        id: state.id,
+        status: state.status,
+        selfServe: state.selfServe === true,
         created: false,
       }))
     } else {
@@ -102,7 +112,7 @@ export function useReadAlongPair(canManage: () => boolean) {
         starting.value = false
       }
     }
-    await search()
+    if (mine === generation) await search()
   }
 
   function choose(kind: BookRequestMediaKind, guid: string) {
@@ -159,6 +169,8 @@ export function useReadAlongPair(canManage: () => boolean) {
     pickable,
     pickOf,
     releaseOf,
+    sameLanguage,
+    stop,
     open,
     choose,
     send,

@@ -15,11 +15,18 @@ export interface ReadAlongRequest {
   mediaKind: BookRequestMediaKind
   id: number
   status: BookRequestStatus
+  selfServe: boolean
   created: boolean
 }
 
 function toRequest(mediaKind: BookRequestMediaKind, result: BookRequestSubmitResult): ReadAlongRequest {
-  return { mediaKind, id: result.request.id, status: result.request.status, created: !result.subscribed }
+  return {
+    mediaKind,
+    id: result.request.id,
+    status: result.request.status,
+    selfServe: result.request.selfServe === true,
+    created: !result.subscribed,
+  }
 }
 
 /**
