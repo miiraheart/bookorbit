@@ -11,6 +11,7 @@ import {
   type MetadataCandidate,
 } from '@bookorbit/types'
 import { apiJson, jsonBody } from '@/lib/api-json'
+import { titleWithoutSeries } from '../lib/related'
 
 const BASE = '/api/v1/goodreads'
 
@@ -71,10 +72,10 @@ interface CreatedRequest {
   request?: { id?: number; status?: BookRequestStatus }
 }
 
-/** The work as every request from this page describes it, filed under the Goodreads id. */
+/** The work as every request from this page describes it, filed under the Goodreads id, without the series tag. */
 export function goodreadsWork(item: GoodreadsShelfItem, language: string | null) {
   return {
-    title: item.title,
+    title: titleWithoutSeries(item.title),
     authors: item.authors,
     ...(item.isbn13 ? { isbn13: item.isbn13 } : {}),
     ...(item.coverUrl ? { coverUrl: item.coverUrl } : {}),

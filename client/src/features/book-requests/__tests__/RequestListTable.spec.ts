@@ -133,6 +133,20 @@ describe('RequestListTable', () => {
     expect(wrapper.get('table tbody').text()).not.toContain('Automatic grabbing is off')
   })
 
+  it('says when the floor was applied rather than quoting it as the current one', () => {
+    const wrapper = render([request({ status: 'approved', failureCode: 'BELOW_SCORE_FLOOR', failureMeta: { floor: 85 }, matchedBookId: null })])
+    expect(wrapper.get('table tbody').text()).toContain('When this was searched, no release scored 85 or better')
+  })
+
+  it('says she already has a waiting book and links to that copy', () => {
+    const waiting = request({ status: 'approved', failureCode: 'BELOW_SCORE_FLOOR', failureMeta: { floor: 80 }, matchedBookId: null })
+    const wrapper = render([waiting], { ownedBookIds: new Map([[1613, 434]]) })
+
+    expect(wrapper.get('table tbody').text()).toContain('You already have this in your library')
+    expect(wrapper.get('table tbody').text()).not.toContain('no release scored')
+    expect(wrapper.findAllComponents(RouterLinkStub)[0]?.props('to')).toEqual({ name: 'book-detail', params: { bookId: 434 } })
+  })
+
   it('offers the next step as one button and keeps it out of the menu', () => {
     const wrapper = render([request({ status: 'approved', matchedBookId: null })])
     const step = wrapper.get('table tbody td:last-child button')

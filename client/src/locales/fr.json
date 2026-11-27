@@ -8860,6 +8860,9 @@
         "filed": "Classement dans la bibliothèque"
       }
     },
+    "nextStep": {
+      "alreadyOwned": "Vous l'avez déjà dans votre bibliothèque"
+    },
     "handback": {
       "AUTOMATION_DISABLED": "La récupération automatique est désactivée : celle-ci a besoin d'une release choisie à la main",
       "NO_DESTINATION": "Cette demande n'a pas de bibliothèque de destination : il n'y a nulle part où classer le livre",
@@ -8870,7 +8873,7 @@
       "MEDIUM_UNCOVERED": "Aucune source de recherche active ne propose ce type de livre : rien n'a été cherché pour cette demande",
       "PROFILE_EXCLUDED_ALL": "Aucune release ne correspond au profil de ce support : celle-ci a besoin d'une release choisie à la main",
       "ALL_TRIED": "Toutes les releases assez bonnes pour être récupérées ont déjà été essayées : celle-ci a besoin d'une release choisie à la main",
-      "BELOW_SCORE_FLOOR": "Aucune release n'a atteint un score de {floor} ou plus : celle-ci a besoin d'une release choisie à la main",
+      "BELOW_SCORE_FLOOR": "Lors de la recherche, aucune release n'a atteint un score de {floor} ou plus : celle-ci a besoin d'une release choisie à la main",
       "ALL_BLOCKED": "Toutes les releases assez bonnes pour être récupérées ont été écartées par un échec antérieur : celle-ci a besoin d'une release choisie à la main",
       "ABANDONED": "Aucune release n'a été choisie : ce téléchargement n'a pas été démarré"
     },

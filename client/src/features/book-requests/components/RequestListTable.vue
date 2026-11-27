@@ -39,6 +39,8 @@ const props = defineProps<{
   sortDir: BookRequestSortDirection
   selectedRowIds: ReadonlySet<number>
   pageSelection: 'none' | 'some' | 'all'
+  /** Waiting requests whose book is already in a library she can see, by request id. */
+  ownedBookIds?: ReadonlyMap<number, number>
 }>()
 
 const emit = defineEmits<{
@@ -139,6 +141,7 @@ interface NextLine {
 function nextLine(request: BookRequestItem): NextLine {
   const outcome = requestOutcome(request, liveFor(request), (iso) => formatRelativeFromNow(new Date(iso)))
   if (outcome.kind === 'progress') return { kind: 'progress', text: percentLabel(request) }
+  if (props.ownedBookIds?.has(request.id)) return { kind: 'text', text: t('bookRequests.nextStep.alreadyOwned') }
   const failure = requestFailureText(request, (key, named) => t(key, named))
   if (outcome.kind === 'failure') return { kind: 'failure', text: failure ?? t('bookRequests.outcome.failedUnknown') }
   if (request.failureCode === 'AUTOMATION_DISABLED') return { kind: 'text', text: t('bookRequests.nextStep.needsRelease') }
@@ -158,7 +161,9 @@ function halfBookCovers(row: BookRequestItem, kind: 'ebook' | 'audiobook'): stri
 
 /** The book either half landed as, so a pair that has partly arrived still links somewhere real. */
 function landedBookId(row: BookRequestItem): number | null {
-  return rowRequests(row).find((request) => request.status === 'available' && request.matchedBookId !== null)?.matchedBookId ?? null
+  const landed = rowRequests(row).find((request) => request.status === 'available' && request.matchedBookId !== null)?.matchedBookId
+  const ownedId = rowRequests(row).find((request) => props.ownedBookIds?.has(request.id))?.id
+  return landed ?? (ownedId === undefined ? null : (props.ownedBookIds?.get(ownedId) ?? null))
 }
 
 function requestedTime(row: BookRequestItem): string {

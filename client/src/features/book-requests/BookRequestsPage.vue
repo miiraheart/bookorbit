@@ -54,6 +54,7 @@ import { useRequestSourceStatus } from './composables/useRequestSourceStatus'
 import { useCoalescedRefresh } from './composables/useCoalescedRefresh'
 import { useRequestListDensity } from './composables/useRequestListDensity'
 import { useRequestQueue } from './composables/useRequestQueue'
+import { useOwnedWaitingRequests } from './composables/useOwnedWaitingRequests'
 import { REQUEST_DRAWER } from './requestDrawerContext'
 import { localizedRequestActionFailure } from './requestActionFailure'
 
@@ -97,6 +98,7 @@ const { progressByRequest, onRequestsChanged, pruneSettledProgress } = useBookRe
 const isListTab = computed(() => activeTab.value !== 'search')
 const activeList = computed(() => (activeTab.value === 'all' ? all : mine))
 const activeItems = computed(() => activeList.value.items.value)
+const { ownedBookIds } = useOwnedWaitingRequests(activeItems)
 const tabCounts = computed<Record<RequestsTab, number | null>>(() => ({
   search: null,
   mine: requestSummary.value?.mineTotal ?? null,
@@ -985,6 +987,7 @@ const emptyMessage = computed(() => {
           :sort-dir="listState.dir"
           :selected-row-ids="selectedRowIds"
           :page-selection="pageSelection"
+          :owned-book-ids="ownedBookIds"
           @open="openRequestById"
           @act="handleRowAct"
           @step="handleRowStep"

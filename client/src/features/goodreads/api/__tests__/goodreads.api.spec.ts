@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GoodreadsShelfItem } from '@bookorbit/types'
+import type { BookRequestMediaKind, GoodreadsShelfItem } from '@bookorbit/types'
 
 type ApiFn = (input: RequestInfo | URL, init?: RequestInit & { _isRetry?: boolean }) => Promise<Response>
 
@@ -9,6 +9,7 @@ vi.mock('@/lib/api', () => ({
 
 import { api } from '@/lib/api'
 import { addGoodreadsSource, cancelGoodreadsRequests, fetchGoodreadsShelf, removeGoodreadsSource, requestGoodreadsBook } from '../goodreads.api'
+import { startGoodreadsReadAlong } from '../readAlong.api'
 
 const mockApi = vi.mocked(api)
 
@@ -52,6 +53,28 @@ describe('goodreads api', () => {
       providerKey: 'goodreads',
       providerId: '1234',
     })
+  })
+
+  it('files a series title without its Goodreads series tag, and keeps any other parentheses', async () => {
+    mockApi.mockImplementation(() => Promise.resolve(jsonResponse({ request: { id: 7, status: 'pending' } }, 201)))
+
+    for (const title of ['Fifty Shades of Grey (Fifty Shades, #1)', 'Dune (Dune Chronicles #1)', 'Dracula (Movie Tie-In)', '(Un)common Sense']) {
+      await requestGoodreadsBook({ ...book, title }, null)
+    }
+
+    const titles = mockApi.mock.calls.map(([, init]) => (JSON.parse(String(init?.body)) as { title: string }).title)
+    expect(titles).toEqual(['Fifty Shades of Grey', 'Dune', 'Dracula (Movie Tie-In)', '(Un)common Sense'])
+  })
+
+  it('sends the clean title through the read-along pair route too', async () => {
+    const half = (id: number) => ({ request: { id, status: 'approved', selfServe: true }, subscribed: false })
+    mockApi.mockResolvedValue(jsonResponse({ ebook: half(1), audiobook: half(2) }, 201))
+    const actionable: BookRequestMediaKind[] = ['ebook', 'audiobook']
+
+    await startGoodreadsReadAlong({ ...book, title: 'Fifty Shades of Grey (Fifty Shades, #1)' }, null, { kind: 'pair', actionable })
+
+    expect(mockApi.mock.calls[0]?.[0]).toBe('/api/v1/book-requests/pairs')
+    expect(JSON.parse(String(mockApi.mock.calls[0]?.[1]?.body))).toMatchObject({ title: 'Fifty Shades of Grey', selfServe: true })
   })
 
   it('asks for an audiobook when told to, and an ebook by default', async () => {
