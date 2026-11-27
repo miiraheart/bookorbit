@@ -11579,6 +11579,7 @@
         "expectedSize": "Plausible size",
         "suspiciousSize": "Unlikely size {detail}",
         "seeders": "{detail} seeders",
+        "downloads": "{detail} downloads",
         "freeleech": "Freeleech",
         "likelySeveralBooks": "{detail} files, may be several books"
       },

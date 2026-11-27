@@ -8718,6 +8718,7 @@
         "expectedSize": "Taille plausible",
         "suspiciousSize": "Taille improbable {detail}",
         "seeders": "{detail} seeders",
+        "downloads": "{detail} téléchargements",
         "freeleech": "Freeleech",
         "likelySeveralBooks": "{detail} fichiers, peut-être plusieurs livres"
       },

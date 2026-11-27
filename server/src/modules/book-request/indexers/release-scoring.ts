@@ -13,6 +13,7 @@ import { normalizeIsbn, normalizeMetadataIsbn } from '../../../common/text-match
 import { inferSeriesPositionFromTitle, sameSeriesPosition } from '../../../common/text-match/series-position-match';
 import { normalizeTitleText, significantTokens, symmetricTitleSimilarity, tokenizeTitleText } from '../../../common/text-match/title-match';
 import type { ReleaseCandidate } from './indexer-adapter';
+import { grabsShare, seederShare } from './release-popularity';
 
 /**
  * Weights, and the reason each one is what it is. They sum to 100 at their maximum, so a score is
@@ -22,7 +23,7 @@ import type { ReleaseCandidate } from './indexer-adapter';
  * Freeleech is five of those hundred, so an ordinary release caps at 95: reaching 100 needs a
  * perfect match, the preferred format, a plausible size, a saturated swarm and freeleech together.
  */
-const WEIGHTS = {
+export const WEIGHTS = {
   /**
    * Does this release describe the requested work at all. Everything else is a tie-breaker.
    *
@@ -51,9 +52,6 @@ const WEIGHTS = {
 
 const TITLE_WEIGHT = 0.7;
 const AUTHOR_WEIGHT = 0.3;
-
-/** Seeders past this add nothing: 200 against 400 is noise, 1 against 20 is not. */
-const SEEDER_SATURATION = 60;
 
 /**
  * Three formats plus a cover and an `.opf` is five files and an entirely ordinary single book, so
@@ -175,9 +173,8 @@ export function scoreRelease(candidate: ReleaseCandidate, request: ScoringReques
   const sizeReason = sizeReasonFor(candidate, request);
   if (sizeReason) reasons.push(sizeReason);
 
-  if (candidate.seeders !== null) {
-    reasons.push({ code: 'seeders', points: round(seederScore(candidate.seeders)), detail: String(candidate.seeders) });
-  }
+  const popularity = popularityReason(candidate);
+  if (popularity) reasons.push(popularity);
 
   if (candidate.freeleech) reasons.push({ code: 'freeleech', points: WEIGHTS.freeleech });
   if (candidate.fileCount !== undefined && candidate.fileCount > SEVERAL_BOOKS_SUSPICION_THRESHOLD) {
@@ -330,10 +327,20 @@ function sizeReasonFor(candidate: ReleaseCandidate, request: ScoringRequest): Re
     : { code: 'suspiciousSize', points: WEIGHTS.suspiciousSize, detail: formatBytes(candidate.sizeBytes) };
 }
 
-/** Log-scaled: the gap between 1 and 20 seeders matters, the gap between 200 and 400 does not. */
-function seederScore(seeders: number): number {
-  if (seeders <= 0) return 0;
-  return WEIGHTS.seeders * Math.min(1, Math.log10(seeders + 1) / Math.log10(SEEDER_SATURATION + 1));
+/**
+ * Log-scaled: the gap between 1 and 20 seeders matters, the gap between 200 and 400 does not.
+ * Seeders and downloads share the one weight and the better of the two counts, so a direct source
+ * with a large download count earns what a well seeded torrent does. Neither stated means no
+ * reason at all, never a zero.
+ */
+function popularityReason(candidate: ReleaseCandidate): ReleaseScoreReason | null {
+  const seeders = seederShare(candidate.seeders);
+  const grabs = grabsShare(candidate.grabs);
+  if (grabs !== null && (seeders === null || grabs > seeders)) {
+    return { code: 'downloads', points: round(WEIGHTS.seeders * grabs), detail: String(candidate.grabs) };
+  }
+  if (seeders === null) return null;
+  return { code: 'seeders', points: round(WEIGHTS.seeders * seeders), detail: String(candidate.seeders) };
 }
 
 /**

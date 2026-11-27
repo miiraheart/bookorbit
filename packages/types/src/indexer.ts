@@ -369,6 +369,7 @@ export const RELEASE_SCORE_REASONS = [
   "expectedSize",
   "suspiciousSize",
   "seeders",
+  "downloads",
   "freeleech",
   "likelySeveralBooks",
 ] as const;

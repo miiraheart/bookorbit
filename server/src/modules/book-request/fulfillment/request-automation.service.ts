@@ -28,6 +28,8 @@ import { BOOK_REQUEST_DOWNLOAD_FAILED, BookRequestEventsService } from '../book-
 import { BookRequestNotifier } from '../book-request-notifier.service';
 import { BookRequestRepository } from '../book-request.repository';
 import { bookRequestSearchIsbns, type IndexerSearchMode, IndexerSearchService } from '../indexers/indexer-search.service';
+import { comparePopularity } from '../indexers/release-popularity';
+import { fullMatchShortOnPopularity } from './auto-grab-full-match';
 import { BookRequestDownloadRepository } from './book-request-download.repository';
 import { grabFailureCode, RequestAlreadyClaimedException, RequestFulfillmentService } from './request-fulfillment.service';
 import { RequestAutomationSearchDelay } from './request-automation-search-delay.service';
@@ -480,15 +482,23 @@ export class RequestAutomationService implements OnModuleInit {
         if (!current || release.score > current.score) releases.set(key, release);
       }
 
+      // Most popular first among what clears, so a well downloaded or well seeded copy is preferred
+      // to a marginally higher scoring one that few people have fetched.
       const ranked = [...releases.values()].sort(
-        (a, b) => compareByTier(a.tier, b.tier) || b.score - a.score || (b.seeders ?? -1) - (a.seeders ?? -1),
+        (a, b) => compareByTier(a.tier, b.tier) || comparePopularity(a, b) || b.score - a.score || (b.seeders ?? -1) - (a.seeders ?? -1),
       );
 
       // A release matching no tier is never grabbed unattended. It stays in the picker for a person
       // to choose, which is the whole point of the untiered state: the operator said what they want,
       // and anything else is a decision they have not delegated.
       const inProfile = profiled ? ranked.filter((release) => release.tier !== null) : ranked;
-      const cleared = inProfile.filter((release) => release.score >= settings.autoGrabMinScore);
+      // A full match held under the floor by popularity alone counts only once every search has run,
+      // so it never stops the search before a release that clears the floor outright could turn up.
+      const lastPass = index === variants.length - 1;
+      const fullMatch = { floor: settings.autoGrabMinScore, profiled, language: request.language };
+      const cleared = inProfile.filter(
+        (release) => release.score >= settings.autoGrabMinScore || (lastPass && fullMatchShortOnPopularity(release, fullMatch)),
+      );
       const candidates = cleared.filter((release) => !tried.has(`${release.indexerId}:${release.guid}`));
 
       picks = {
