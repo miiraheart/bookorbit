@@ -151,6 +151,24 @@ describe('auto-grab takes a full match held under the floor by popularity alone'
     expect(await grabbed([[mismatch]])).toBeNull();
   });
 
+  it('does not count a near miss whose title and author match short of the full match weight', async () => {
+    const partial = item({ guid: 'aa-partial', author: 'Hoover', grabs: 1 });
+    const match = partial.reasons.find((reason) => reason.code === 'authorMatch');
+
+    expect(match!.points).toBeLessThan(61);
+    expect(partial.score + 12 - 1).toBeGreaterThanOrEqual(80);
+    expect(await grabbed([[partial]])).toBeNull();
+  });
+
+  it('tries every release that clears the floor before a full match that only falls short on popularity', async () => {
+    const lone = item({ guid: 'aa-4dl', grabs: 4 });
+    const cleared = item({ ...MAM_254, guid: 'mam-1', seeders: 1, freeleech: true });
+
+    expect(lone.score).toBeLessThan(80);
+    expect(cleared.score).toBeGreaterThanOrEqual(80);
+    expect(await grabbed([[lone, cleared]])).toBe('mam-1');
+  });
+
   it('does not count an ISBN match as a full match, since it only needs part of the title or author', async () => {
     const asked = scoring({ isbn13: '9781538724736' });
     const byIsbn = item({ guid: 'aa-isbn', isbn: '9781538724736', grabs: 1 }, asked);

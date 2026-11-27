@@ -496,9 +496,11 @@ export class RequestAutomationService implements OnModuleInit {
       // so it never stops the search before a release that clears the floor outright could turn up.
       const lastPass = index === variants.length - 1;
       const fullMatch = { floor: settings.autoGrabMinScore, profiled, language: request.language };
-      const cleared = inProfile.filter(
-        (release) => release.score >= settings.autoGrabMinScore || (lastPass && fullMatchShortOnPopularity(release, fullMatch)),
+      const onFloor = inProfile.filter((release) => release.score >= settings.autoGrabMinScore);
+      const shortOnPopularity = inProfile.filter(
+        (release) => release.score < settings.autoGrabMinScore && fullMatchShortOnPopularity(release, fullMatch),
       );
+      const cleared = lastPass ? [...onFloor, ...shortOnPopularity] : onFloor;
       const candidates = cleared.filter((release) => !tried.has(`${release.indexerId}:${release.guid}`));
 
       picks = {
