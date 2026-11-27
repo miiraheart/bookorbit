@@ -26,7 +26,7 @@ const item = useGoodreadsItem(
   () => String(route.params.source ?? ''),
   () => String(route.params.key ?? ''),
 )
-const { row, related, cardsById, cards, libraryCopy, owned, requestableKinds, loading, missing, requesting } = item
+const { row, related, cardsById, cards, libraryCopy, owned, requestableKinds, loading, missing, failed, requesting } = item
 const lookup = useGoodreadsBookLookup(() => row.value)
 const { candidate, busy, coverSrc } = lookup
 
@@ -65,6 +65,12 @@ function handleReload() {
     </header>
 
     <main ref="mainEl" class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:px-6 sm:py-4">
+      <p v-if="failed && !loading" class="mb-4 flex flex-wrap items-center gap-2 text-sm text-destructive" data-testid="goodreads-detail-failed">
+        {{ gt('detail.loadFailed') }}
+        <button type="button" class="rounded-md px-2 py-1 text-foreground hover:bg-muted" data-testid="goodreads-detail-retry" @click="handleReload">
+          {{ gt('detail.retry') }}
+        </button>
+      </p>
       <p v-if="loading && !row" class="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 class="size-4 animate-spin" aria-hidden="true" />{{ gt('detail.loading') }}
       </p>

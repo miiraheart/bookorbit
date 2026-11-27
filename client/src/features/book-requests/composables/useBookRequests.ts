@@ -39,6 +39,7 @@ const EMPTY_VIEW_COUNTS: BookRequestViewCounts = {
   closed: 0,
   hidden: 0,
   awaitingManualPick: 0,
+  autoGrabEnabled: true,
 }
 
 export function useBookRequests(scope: RequestScope) {

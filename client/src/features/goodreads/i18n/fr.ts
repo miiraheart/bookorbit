@@ -92,7 +92,9 @@ export const FR: GoodreadsMessages = {
     creating: 'Création des demandes',
     nothingToDo: 'Plus rien à télécharger pour ce livre',
     notice:
-      '{count, plural, =0 {Ces demandes attendent un choix. Rien ne se télécharge avant d’appuyer sur le bouton ci-dessous.} one {Une demande a été créée. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer la garde 6 heures, puis elle est annulée si rien n’a été envoyé.} other {# demandes ont été créées. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Fermer les garde 6 heures, puis elles sont annulées si rien n’a été envoyé.}}',
+      '{count, plural, =0 {Ces demandes attendent un choix. Rien ne se télécharge avant d’appuyer sur le bouton ci-dessous. Une demande sans envoi est annulée 6 heures après sa création.} one {Une demande a été créée. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Si rien n’est envoyé, elle est annulée 6 heures après sa création.} other {# demandes ont été créées. Rien ne se télécharge encore : rien ne démarre avant d’appuyer sur le bouton ci-dessous. Si rien n’est envoyé, elles sont annulées 6 heures après leur création.}}',
+    partSent:
+      '{half} : téléchargement démarré. L’autre moitié n’a pas encore été envoyée, réessayez ci-dessous. Une demande sans envoi est annulée 6 heures après sa création.',
     ebook: 'Livre numérique',
     audiobook: 'Livre audio',
     owned: 'Déjà dans votre bibliothèque',
@@ -109,7 +111,7 @@ export const FR: GoodreadsMessages = {
       ebook: {
         noRelease: 'Aucun livre numérique trouvé',
         noMatch: 'Aucun livre numérique de ce livre trouvé',
-        flagged: 'Seulement des intégrales, des résumés ou des versions abrégées',
+        flagged: 'Seulement des intégrales, des volumes partiels, des résumés ou des versions abrégées',
         language: 'Aucun livre numérique dans la langue du livre audio trouvé',
       },
     },
@@ -158,6 +160,8 @@ export const FR: GoodreadsMessages = {
     byAuthor: 'Par {author}',
     loading: 'Chargement de ce livre',
     notFound: 'Ce livre n’est plus sur ces étagères Goodreads',
+    loadFailed: 'Impossible de charger ce livre',
+    retry: 'Réessayer',
   },
   listShelf: 'Liste',
   shelves: {

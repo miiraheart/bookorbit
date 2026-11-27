@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BookOpen, Check, Headphones, Loader2, RefreshCw, Repeat } from '@lucide/vue'
 import type { BookRequestMediaKind, ReleaseCandidateItem } from '@bookorbit/types'
+import { releaseKey } from '@/features/book-requests/composables/useReleasePicker'
 import { formatNumber } from '@/i18n/formatters'
 import { formatBytes } from '@/lib/formatting'
 import type { ReadAlongRequest } from '../../api/readAlong.api'
@@ -24,7 +25,7 @@ const props = defineProps<{
   sameLanguage?: boolean
 }>()
 
-const emit = defineEmits<{ choose: [guid: string]; retry: [] }>()
+const emit = defineEmits<{ choose: [key: string]; retry: [] }>()
 
 const { t } = useI18n()
 function gt(key: string, params: Record<string, unknown> = {}): string {
@@ -63,9 +64,9 @@ function handleRetry() {
   emit('retry')
 }
 
-function handleChoose(guid: string) {
+function handleChoose(option: ReleaseCandidateItem) {
   swapOpen.value = false
-  emit('choose', guid)
+  emit('choose', releaseKey(option))
 }
 </script>
 
@@ -125,14 +126,14 @@ function handleChoose(guid: string) {
         <Repeat class="size-3.5" aria-hidden="true" />{{ gt('swap', { count: half?.ranked.length ?? 0 }) }}
       </button>
       <ul v-if="swapOpen && half" class="flex max-h-64 flex-col gap-1 overflow-y-auto" data-testid="read-along-ranked">
-        <li v-for="option in half.ranked" :key="option.guid">
+        <li v-for="option in half.ranked" :key="releaseKey(option)">
           <button
             type="button"
             class="flex w-full flex-col gap-0.5 rounded-md border px-2 py-1.5 text-left text-xs hover:bg-muted"
-            :class="option.guid === release.guid ? 'border-primary' : 'border-border'"
-            :aria-pressed="option.guid === release.guid"
+            :class="releaseKey(option) === releaseKey(release) ? 'border-primary' : 'border-border'"
+            :aria-pressed="releaseKey(option) === releaseKey(release)"
             data-testid="read-along-option"
-            @click="handleChoose(option.guid)"
+            @click="handleChoose(option)"
           >
             <span class="font-medium break-words text-foreground">{{ option.title }}</span>
             <span class="text-muted-foreground">{{ facts(option).join(' · ') }}</span>

@@ -94,7 +94,9 @@ export const EN = {
     creating: 'Creating the requests',
     nothingToDo: 'Nothing left to download for this book',
     notice:
-      '{count, plural, =0 {These requests are waiting for a pick. Nothing downloads until you press the button below.} one {One request was created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps it for 6 hours, then it is cancelled if nothing was sent.} other {# requests were created. Nothing is downloading yet: nothing starts until you press the button below. Close keeps them for 6 hours, then they are cancelled if nothing was sent.}}',
+      '{count, plural, =0 {These requests are waiting for a pick. Nothing downloads until you press the button below. A request with nothing sent is cancelled 6 hours after it was made.} one {One request was created. Nothing is downloading yet: nothing starts until you press the button below. If nothing is sent, it is cancelled 6 hours after it was made.} other {# requests were created. Nothing is downloading yet: nothing starts until you press the button below. If nothing is sent, they are cancelled 6 hours after they were made.}}',
+    partSent:
+      '{half}: download started. The other half was not sent yet, retry it below. A request with nothing sent is cancelled 6 hours after it was made.',
     ebook: 'Ebook',
     audiobook: 'Audiobook',
     owned: 'Already in your library',
@@ -111,7 +113,7 @@ export const EN = {
       ebook: {
         noRelease: 'No ebook found',
         noMatch: 'No ebook of this book found',
-        flagged: 'Only omnibus, summary or abridged ebooks found',
+        flagged: 'Only omnibus, split, summary or abridged ebooks found',
         language: 'No ebook in the language of the audiobook found',
       },
     },
@@ -160,6 +162,8 @@ export const EN = {
     byAuthor: 'By {author}',
     loading: 'Loading this book',
     notFound: 'This book is no longer on these Goodreads shelves',
+    loadFailed: 'Could not load this book',
+    retry: 'Retry',
   },
   listShelf: 'List',
   shelves: {

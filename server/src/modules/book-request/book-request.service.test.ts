@@ -170,6 +170,7 @@ function makeService(
   // Nothing pinned for the instance, so the destination stays whatever the request itself names.
   const automationSettings = {
     resolveDestinationFor: vi.fn().mockResolvedValue({ libraryId: null, folderId: null }),
+    get: vi.fn().mockResolvedValue({ autoGrabEnabled: true }),
     ...overrides.automationSettings,
   };
   const removal = {
@@ -2611,6 +2612,16 @@ describe('BookRequestService list views', () => {
 describe('BookRequestService view counts', () => {
   const approver = () => user({ permissions: [Permission.BookRequestAccess, Permission.ManageBookRequests] });
 
+  /** A row stamped while automatic grabbing was off keeps its stamp, so the banner needs the setting as it is now. */
+  it('reports whether automatic grabbing is on now next to the rows waiting for a pick', async () => {
+    const get = vi.fn().mockResolvedValue({ autoGrabEnabled: false });
+    const { service } = makeService({ repo: { countRows: vi.fn().mockResolvedValue(2) }, automationSettings: { get } });
+
+    await expect(service.getAllViewCounts({}, approver())).resolves.toMatchObject({ awaitingManualPick: 2, autoGrabEnabled: false });
+    get.mockResolvedValue({ autoGrabEnabled: true });
+    await expect(service.getAllViewCounts({}, approver())).resolves.toMatchObject({ awaitingManualPick: 2, autoGrabEnabled: true });
+  });
+
   /** Every figure goes through the list's own where clause, one count per view, all at once. */
   it('counts every view under the same filters, with hidden rows only in the hidden view', async () => {
     const countRows = vi.fn((options: Record<string, unknown>) => {
@@ -2623,7 +2634,16 @@ describe('BookRequestService view counts', () => {
 
     const counts = await service.getMineViewCounts({ q: 'dune', mediaKind: 'ebook', view: 'closed', includeDismissed: true }, user());
 
-    expect(counts).toEqual({ active: 20, needs_action: 4, in_progress: 4, finished: 1, closed: 2, hidden: 4, awaitingManualPick: 1 });
+    expect(counts).toEqual({
+      active: 20,
+      needs_action: 4,
+      in_progress: 4,
+      finished: 1,
+      closed: 2,
+      hidden: 4,
+      awaitingManualPick: 1,
+      autoGrabEnabled: true,
+    });
     expect(countRows).toHaveBeenCalledTimes(7);
     for (const [options] of countRows.mock.calls) {
       expect(options).toMatchObject({ userId: 1, search: 'dune', mediaKind: 'ebook' });

@@ -4,6 +4,7 @@ import { defineComponent, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { BookCard, GoodreadsItemDetail, GoodreadsShelfRow, MetadataCandidate } from '@bookorbit/types'
 import { i18n } from '@/i18n'
+import { ApiError } from '@/lib/api-json'
 
 vi.mock('@/features/auth/composables/usePermissions', () => ({
   usePermissions: () => ({ hasPermission: () => true, isSuperuser: ref(true), isDemoRestrictedAccount: ref(false) }),
@@ -132,6 +133,7 @@ describe('GoodreadsDetailView', () => {
 
     expect(items).toHaveLength(1)
     expect(items[0]!.attributes('href')).toBe('/book/7?tab=details')
+    expect(items[0]!.text()).toContain(t('goodreads.inLibrary'))
     await wrapper.find('[data-testid="goodreads-related-tab-author"]').trigger('click')
     const byAuthor = wrapper.findAll('[data-testid="goodreads-related-item"]')
     expect(byAuthor).toHaveLength(2)
@@ -156,9 +158,44 @@ describe('GoodreadsDetailView', () => {
   })
 
   it('says so when the book left the shelves', async () => {
-    vi.mocked(fetchGoodreadsItem).mockRejectedValue(new Error('404'))
+    vi.mocked(fetchGoodreadsItem).mockRejectedValue(new ApiError('gone', 404, null, null))
     const { wrapper } = await mountAt('/goodreads/book/me/gone')
 
     expect(wrapper.find('[data-testid="goodreads-detail-missing"]').text()).toBe(t('goodreads.detail.notFound'))
+    expect(wrapper.find('[data-testid="goodreads-detail-failed"]').exists()).toBe(false)
+  })
+
+  it('says the book could not load on a server failure, and loads it on retry', async () => {
+    vi.mocked(fetchGoodreadsItem).mockRejectedValueOnce(new ApiError('boom', 500, null, null))
+    const { wrapper } = await mountAt('/goodreads/book/me/55401')
+
+    expect(wrapper.find('[data-testid="goodreads-detail-missing"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="goodreads-detail-failed"]').text()).toContain(t('goodreads.detail.loadFailed'))
+    await wrapper.find('[data-testid="goodreads-detail-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="goodreads-detail-title"]').text()).toBe('Deadhouse Gates')
+    expect(wrapper.find('[data-testid="goodreads-detail-failed"]').exists()).toBe(false)
+  })
+
+  it('keeps the page when the reload after a request fails', async () => {
+    const { wrapper } = await mountAt('/goodreads/book/me/55401')
+    vi.mocked(fetchGoodreadsItem).mockRejectedValueOnce(new ApiError('offline', 503, null, null))
+    await wrapper.find('[data-testid="goodreads-detail-request-audiobook"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="goodreads-detail-title"]').text()).toBe('Deadhouse Gates')
+    expect(wrapper.find('[data-testid="goodreads-detail-failed"]').exists()).toBe(true)
+  })
+
+  it('does not mark a related book as in the library when its copy is not visible', async () => {
+    vi.mocked(fetchGoodreadsItem).mockResolvedValue({
+      ...fixture,
+      related: [row('55399', 'Gardens of the Moon (Malazan Book of the Fallen, #1)', { bookIds: [99] })],
+    })
+    const { wrapper } = await mountAt('/goodreads/book/me/55401')
+    const item = wrapper.find('[data-testid="goodreads-related-item"]')
+
+    expect(item.attributes('href')).toBe('/goodreads/book/me/55399')
+    expect(item.text()).not.toContain(t('goodreads.inLibrary'))
   })
 })

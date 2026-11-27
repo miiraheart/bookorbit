@@ -154,6 +154,18 @@ describe('rankEbookReleases', () => {
     )
     expect(ranked.ranked).toEqual([kept])
   })
+
+  it('drops a split ebook volume', () => {
+    const kept = ebook({ title: 'The Stand' })
+    const ranked = rankEbookReleases([ebook({ title: 'The Stand (Part 1 of 2)' }), ebook({ title: 'The Stand, Part 2 of 2' }), kept], null, work)
+    expect(ranked.ranked).toEqual([kept])
+  })
+
+  it('keeps an EPUB from a direct source above a seeded AZW3 torrent, since only an EPUB reads along', () => {
+    const azw3 = ebook({ title: 'azw3', format: 'azw3', formats: ['azw3'], seeders: 254 })
+    const epub = ebook({ title: 'epub', ...aa, grabs: 200 })
+    expect(titles(rankEbookReleases([azw3, epub], null, work).ranked)).toEqual(['epub', 'azw3'])
+  })
 })
 
 describe('pickReadAlongPair', () => {

@@ -65,7 +65,7 @@ describe('useBookRequests filters', () => {
   })
 
   it('asks for the view counts with the filters but not the view, sort or page', async () => {
-    const counts = { active: 3, needs_action: 1, in_progress: 1, finished: 1, closed: 0, hidden: 5, awaitingManualPick: 0 }
+    const counts = { active: 3, needs_action: 1, in_progress: 1, finished: 1, closed: 0, hidden: 5, awaitingManualPick: 0, autoGrabEnabled: false }
     apiMock.mockResolvedValue(response(counts))
     const requests = await freshRequests('all')
     requests.applyState({ ...DEFAULT_LIST_STATE, q: 'dune', view: 'finished', page: 3 })

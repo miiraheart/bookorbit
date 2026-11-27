@@ -1,4 +1,10 @@
-import { normalizeReadAlongLanguage, readAlongTitleFlags, type ReleaseCandidateItem, type ReleaseScoreReasonCode } from '@bookorbit/types'
+import {
+  normalizeReadAlongLanguage,
+  PART_OF_PATTERN,
+  readAlongTitleFlags,
+  type ReleaseCandidateItem,
+  type ReleaseScoreReasonCode,
+} from '@bookorbit/types'
 
 /**
  * Match points out of 61 a release needs to count as the requested work. Calibrated on the scorer:
@@ -99,7 +105,7 @@ export function rankEbookReleases(
   const target = readAlongLanguage(audio, work)
   const { kept, missing } = narrow(releases, [
     ['noMatch', matchesWork],
-    ['flagged', (release) => readAlongTitleFlags({ title: release.title }, 'epub').length === 0],
+    ['flagged', (release) => readAlongTitleFlags({ title: release.title }, 'epub').length === 0 && !PART_OF_PATTERN.test(release.title)],
     ['language', (release) => languageFits(release, target, work)],
   ])
   return result(kept.sort(ebookOrder), missing)

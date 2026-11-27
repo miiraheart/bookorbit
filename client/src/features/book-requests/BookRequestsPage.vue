@@ -719,6 +719,7 @@ function handleBulkRun(action: RequestAction) {
 // ── Banner: automation is off ───────────────────────────────────────────────
 
 const awaitingManualPick = computed(() => activeList.value.viewCounts.value.awaitingManualPick)
+const autoGrabOff = computed(() => !activeList.value.viewCounts.value.autoGrabEnabled)
 const showAutomationBanner = computed(
   () =>
     isListTab.value && canManage.value && awaitingManualPick.value > 0 && (listState.value.view === 'all' || listState.value.view === 'needs_action'),
@@ -885,7 +886,7 @@ const emptyMessage = computed(() => {
       >
         <Info :size="16" class="shrink-0 text-info" aria-hidden="true" />
         <p class="min-w-0 flex-1 basis-60">
-          <span class="font-semibold">{{ t('bookRequests.banner.automationOff') }}</span>
+          <span v-if="autoGrabOff" class="font-semibold">{{ t('bookRequests.banner.automationOff') }}</span>
           {{ t('bookRequests.banner.needsPick', { count: awaitingManualPick }) }}
         </p>
         <div class="flex shrink-0 items-center gap-1.5">

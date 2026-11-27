@@ -36,15 +36,18 @@ const shownHalves = computed(() => HALVES.filter((kind) => pair.owned.value.incl
 const cancellable = computed(() =>
   pair.created.value.filter((entry) => pair.grabs[entry.mediaKind].state !== 'sent' && isCancellableBookRequestStatus(entry.status)),
 )
+const startedHalf = computed(() => HALVES.find((kind) => pair.grabs[kind].state === 'sent') ?? null)
 const sendCount = computed(
   () => pair.requests.value.filter((entry) => pair.pickable(entry.mediaKind) && pair.grabs[entry.mediaKind].state !== 'sent').length,
 )
 
-let changeOwed = false
+let press = 0
+const owed = new Set<number>()
 
 async function start() {
   const row = props.row
   if (!row) return
+  const mine = ++press
   const plan = readAlongPlan(row, props.cards, canManage())
   if (plan.kind === 'none') {
     pair.reset()
@@ -53,10 +56,7 @@ async function start() {
   await language.load()
   if (!props.open) return
   await pair.open(row, plan, language.resolveLanguage(null))
-  if (changeOwed) {
-    changeOwed = false
-    emit('changed')
-  }
+  if (owed.delete(mine)) emit('changed')
 }
 
 watch(
@@ -70,7 +70,7 @@ watch(
 function close() {
   pair.stop()
   emit('update:open', false)
-  if (pair.starting.value) changeOwed = true
+  if (pair.starting.value) owed.add(press)
   else if (pair.requests.value.length > 0) emit('changed')
 }
 
@@ -94,8 +94,8 @@ async function handleRetry(kind: BookRequestMediaKind) {
   finishIfSent()
 }
 
-function handleChoose(kind: BookRequestMediaKind, guid: string) {
-  pair.choose(kind, guid)
+function handleChoose(kind: BookRequestMediaKind, key: string) {
+  pair.choose(kind, key)
 }
 
 async function handleCancel() {
@@ -125,7 +125,7 @@ async function handleCancel() {
         <p v-else-if="pair.requests.value.length === 0" class="text-sm text-muted-foreground">{{ gt('nothingToDo') }}</p>
         <template v-else>
           <p class="rounded-md bg-muted px-3 py-2 text-sm text-foreground" data-testid="read-along-notice">
-            {{ gt('notice', { count: pair.created.value.length }) }}
+            {{ startedHalf ? gt('partSent', { half: gt(startedHalf) }) : gt('notice', { count: pair.created.value.length }) }}
           </p>
           <ReadAlongHalfCard
             v-for="kind in shownHalves"

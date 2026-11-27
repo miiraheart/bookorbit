@@ -930,16 +930,17 @@ export class BookRequestService {
    */
   private async countViews(filters: RequestListFilters, viewerId: number): Promise<BookRequestViewCounts> {
     const unhidden: RequestListFilters = { ...filters, excludeDismissedFor: viewerId };
-    const [active, awaitingManualPick, ...perView] = await Promise.all([
+    const [active, awaitingManualPick, settings, ...perView] = await Promise.all([
       this.repo.countRows(unhidden),
       this.repo.countRows({ ...unhidden, statuses: ['approved'], failureCode: 'AUTOMATION_DISABLED' }),
+      this.automationSettings.get(),
       ...BOOK_REQUEST_LIST_VIEWS.map((view) => this.repo.countRows(withView(filters, viewerId, view, undefined))),
     ]);
     const byView = Object.fromEntries(BOOK_REQUEST_LIST_VIEWS.map((view, index) => [view, perView[index] ?? 0])) as Record<
       BookRequestListView,
       number
     >;
-    return { active, ...byView, awaitingManualPick };
+    return { active, ...byView, awaitingManualPick, autoGrabEnabled: settings.autoGrabEnabled };
   }
 
   /**

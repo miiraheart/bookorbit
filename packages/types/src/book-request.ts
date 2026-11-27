@@ -698,6 +698,8 @@ export interface BookRequestViewCounts {
   closed: number;
   hidden: number;
   awaitingManualPick: number;
+  /** The setting as it is now: a row stamped while it was off still needs its pick after it is turned on. */
+  autoGrabEnabled: boolean;
 }
 
 /** The most requests "select all matching" will gather; a larger match is reported as truncated. */

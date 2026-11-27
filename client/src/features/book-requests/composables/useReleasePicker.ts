@@ -293,7 +293,7 @@ export function useReleasePicker(canManage: () => boolean) {
   }
 }
 
-function releaseKey(release: ReleaseCandidateItem): string {
+export function releaseKey(release: ReleaseCandidateItem): string {
   return `${release.indexerId}:${release.guid}`
 }
 

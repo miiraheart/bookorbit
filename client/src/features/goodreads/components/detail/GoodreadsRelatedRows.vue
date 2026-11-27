@@ -5,7 +5,7 @@ import type { BookCard, GoodreadsShelfRow } from '@bookorbit/types'
 import BookCoverArtwork from '@/features/book/components/BookCoverArtwork.vue'
 import BookCoverSurface from '@/features/book/components/BookCoverSurface.vue'
 import { GOODREADS_MESSAGE_ROOT } from '../../i18n'
-import { goodreadsRowLocation, seriesRows, titleWithoutSeries } from '../../lib/related'
+import { goodreadsRowLocation, seriesRows, shownCopy, titleWithoutSeries } from '../../lib/related'
 
 type RelatedTab = 'series' | 'author'
 
@@ -80,7 +80,7 @@ function select(id: RelatedTab) {
               :authors="entry.authors"
             />
             <span
-              v-if="entry.bookIds.length > 0"
+              v-if="shownCopy(entry, cardsById) !== null"
               class="absolute top-1.5 right-1.5 z-10 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white"
               >{{ gt('inLibrary') }}</span
             >

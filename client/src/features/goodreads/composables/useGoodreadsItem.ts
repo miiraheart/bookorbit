@@ -4,7 +4,7 @@ import { toast } from 'vue-sonner'
 import { BOOK_REQUEST_MEDIA_KINDS, type BookCard, type BookRequestMediaKind, type GoodreadsItemDetail } from '@bookorbit/types'
 import { usePermissions } from '@/features/auth/composables/usePermissions'
 import { useRequestLanguageDefault } from '@/features/book-requests/composables/useRequestDestinationDefault'
-import { errorMessage } from '@/lib/api-json'
+import { ApiError, errorMessage } from '@/lib/api-json'
 import { fetchGoodreadsItem, requestGoodreadsBook } from '../api/goodreads.api'
 import { GOODREADS_MESSAGE_ROOT } from '../i18n'
 import { isLiveRequest } from '../lib/bulk'
@@ -19,8 +19,10 @@ export function useGoodreadsItem(source: () => string, key: () => string) {
   const detail = shallowRef<GoodreadsItemDetail | null>(null)
   const loading = ref(false)
   const missing = ref(false)
+  const failed = ref(false)
   const requesting = ref<BookRequestMediaKind | null>(null)
   let generation = 0
+  let loadedAddress: string | null = null
 
   const row = computed(() => detail.value?.item ?? null)
   const related = computed(() => detail.value?.related ?? [])
@@ -39,16 +41,21 @@ export function useGoodreadsItem(source: () => string, key: () => string) {
 
   async function load(): Promise<void> {
     const mine = ++generation
+    const address = `${source()}\u0000${key()}`
     loading.value = true
     try {
       const next = await fetchGoodreadsItem(source(), key())
       if (mine !== generation) return
       detail.value = next
+      loadedAddress = address
       missing.value = false
-    } catch {
+      failed.value = false
+    } catch (reason) {
       if (mine !== generation) return
-      detail.value = null
-      missing.value = true
+      const gone = reason instanceof ApiError && reason.status === 404
+      if (gone || address !== loadedAddress) detail.value = null
+      missing.value = gone
+      failed.value = !gone
     } finally {
       if (mine === generation) loading.value = false
     }
@@ -76,5 +83,5 @@ export function useGoodreadsItem(source: () => string, key: () => string) {
   )
   onMounted(() => void language.load())
 
-  return { row, related, cardsById, cards, libraryCopy, owned, requestableKinds, loading, missing, requesting, load, request }
+  return { row, related, cardsById, cards, libraryCopy, owned, requestableKinds, loading, missing, failed, requesting, load, request }
 }

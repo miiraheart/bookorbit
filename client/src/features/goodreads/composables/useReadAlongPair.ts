@@ -3,16 +3,16 @@ import {
   isCancellableBookRequestStatus,
   normalizeReadAlongLanguage,
   type BookRequestMediaKind,
-  type GoodreadsShelfItem,
+  type GoodreadsShelfRow,
   type ReleaseCandidateItem,
 } from '@bookorbit/types'
 import { useBookRequestActions } from '@/features/book-requests/composables/useBookRequests'
-import { useReleasePicker } from '@/features/book-requests/composables/useReleasePicker'
+import { releaseKey, useReleasePicker } from '@/features/book-requests/composables/useReleasePicker'
 import { errorMessage } from '@/lib/api-json'
 import { cancelGoodreadsRequests } from '../api/goodreads.api'
 import { startGoodreadsReadAlong, type ReadAlongRequest } from '../api/readAlong.api'
 import { rankAudiobookReleases, rankEbookReleases, type ReadAlongHalfPick } from '../lib/readAlongPick'
-import { canPickFor, type ReadAlongPlan } from '../lib/readAlongPlan'
+import { canPickFor, type ReadAlongPlan, type ReadAlongStart } from '../lib/readAlongPlan'
 
 export type GrabState = { state: 'idle' | 'sending' | 'sent' | 'failed'; reason: string | null }
 
@@ -41,7 +41,7 @@ export function useReadAlongPair(canManage: () => boolean) {
 
   function selected(half: ReadAlongHalfPick | null, kind: BookRequestMediaKind): ReleaseCandidateItem | null {
     if (!half) return null
-    return half.ranked.find((release) => release.guid === chosen[kind]) ?? half.pick
+    return half.ranked.find((release) => releaseKey(release) === chosen[kind]) ?? half.pick
   }
 
   const audio = computed(() => (pickable('audiobook') ? rankAudiobookReleases(pickers.audiobook.releases.value) : null))
@@ -68,6 +68,20 @@ export function useReadAlongPair(canManage: () => boolean) {
   )
 
   let generation = 0
+  let filing: { key: string; requests: Promise<ReadAlongRequest[]> } | null = null
+
+  /** A press on a book whose earlier press is still filing waits for that one, so its requests stay "created". */
+  function file(item: GoodreadsShelfRow, language: string | null, start: ReadAlongStart): Promise<ReadAlongRequest[]> {
+    const key = `${item.source}\u0000${item.key}`
+    if (filing?.key === key) return filing.requests
+    const current = { key, requests: startGoodreadsReadAlong(item, language, start) }
+    filing = current
+    const clear = () => {
+      if (filing === current) filing = null
+    }
+    current.requests.then(clear, clear)
+    return current.requests
+  }
 
   /** A press closed before its requests came back still files them, but searches nothing. */
   function stop() {
@@ -76,6 +90,7 @@ export function useReadAlongPair(canManage: () => boolean) {
 
   function reset() {
     requests.value = []
+    starting.value = false
     startError.value = null
     for (const kind of ['audiobook', 'ebook'] as const) {
       chosen[kind] = null
@@ -88,11 +103,11 @@ export function useReadAlongPair(canManage: () => boolean) {
     await Promise.all(requests.value.filter((entry) => pickable(entry.mediaKind)).map((entry) => pickers[entry.mediaKind].fetchReleases(entry.id)))
   }
 
-  async function open(item: GoodreadsShelfItem, plan: Exclude<ReadAlongPlan, { kind: 'none' }>, language: string | null) {
+  async function open(item: GoodreadsShelfRow, plan: Exclude<ReadAlongPlan, { kind: 'none' }>, language: string | null) {
+    const mine = ++generation
     reset()
     owned.value = plan.owned
     workLanguage.value = language
-    const mine = ++generation
     if (plan.kind === 'resume') {
       requests.value = Object.entries(plan.requests).map(([kind, state]) => ({
         mediaKind: kind as BookRequestMediaKind,
@@ -104,19 +119,21 @@ export function useReadAlongPair(canManage: () => boolean) {
     } else {
       starting.value = true
       try {
-        requests.value = await startGoodreadsReadAlong(item, language, plan.submission)
+        const filed = await file(item, language, plan.submission)
+        if (mine !== generation) return
+        requests.value = filed
       } catch (reason) {
-        startError.value = errorMessage(reason, 'goodreads.requestFailed')
+        if (mine === generation) startError.value = errorMessage(reason, 'goodreads.requestFailed')
         return
       } finally {
-        starting.value = false
+        if (mine === generation) starting.value = false
       }
     }
     if (mine === generation) await search()
   }
 
-  function choose(kind: BookRequestMediaKind, guid: string) {
-    chosen[kind] = guid
+  function choose(kind: BookRequestMediaKind, key: string) {
+    chosen[kind] = key
   }
 
   async function send(kind: BookRequestMediaKind, fallback: string) {
