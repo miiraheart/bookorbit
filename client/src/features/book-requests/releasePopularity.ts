@@ -19,7 +19,6 @@ function logShare(count: number | null | undefined, saturation: number): number 
   return Math.min(1, Math.log10(count + 1) / Math.log10(saturation + 1))
 }
 
-/** The better of the two signals, from 0 to 1. Null only when the source stated neither. */
 export function popularityShare(release: PopularityCounts): number | null {
   const seeders = logShare(release.seeders, SEEDER_SATURATION)
   const grabs = logShare(release.grabs, GRABS_SATURATION)
@@ -32,7 +31,6 @@ export function hasPopularity(release: PopularityCounts): boolean {
   return popularityShare(release) !== null
 }
 
-/** "1,204 downloads", or null where the source stated no count. */
 export function downloadsText(release: PopularityCounts, t: Translate): string | null {
   const grabs = release.grabs
   if (typeof grabs !== 'number' || !Number.isFinite(grabs)) return null
@@ -40,9 +38,7 @@ export function downloadsText(release: PopularityCounts, t: Translate): string |
 }
 
 export interface ReleaseDateText {
-  /** For the row's line of facts. */
   short: string
-  /** For the score details, where the date stands on its own. */
   long: string
 }
 
