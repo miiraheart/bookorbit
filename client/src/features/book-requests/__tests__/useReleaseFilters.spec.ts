@@ -64,6 +64,36 @@ describe('useReleaseFilters', () => {
     expect(guids(filters.visibleReleases.value)).toEqual(['seeded', 'silent'])
   })
 
+  it('sorts by popularity across seeders and downloads, unknown counts last', () => {
+    const filters = useReleaseFilters(
+      ref([
+        release({ guid: 'silent', score: 90 }),
+        release({ guid: 'thin-swarm', seeders: 3, score: 80 }),
+        release({ guid: 'aa-popular', grabs: 10207, score: 70 }),
+        release({ guid: 'aa-rare', grabs: 12, score: 60 }),
+      ]),
+    )
+
+    expect(filters.availableSortKeys.value).toContain('popular')
+    filters.selectSort('popular')
+
+    expect(guids(filters.visibleReleases.value)).toEqual(['aa-popular', 'thin-swarm', 'aa-rare', 'silent'])
+  })
+
+  it('sorts a year-only date by its year among full dates', () => {
+    const filters = useReleaseFilters(
+      ref([
+        release({ guid: 'old', publishedAt: '2009-06-01T00:00:00Z' }),
+        release({ guid: 'year', publishedAt: '2011-01-01T00:00:00Z', publishedPrecision: 'year' }),
+        release({ guid: 'new', publishedAt: '2024-05-03T10:00:00Z' }),
+      ]),
+    )
+
+    filters.selectSort('added')
+
+    expect(guids(filters.visibleReleases.value)).toEqual(['new', 'year', 'old'])
+  })
+
   it('offers no sort axis that nothing in the list varies on', () => {
     const filters = useReleaseFilters(ref([release({ seeders: null, sizeBytes: null, publishedAt: null, audio: null })]))
 

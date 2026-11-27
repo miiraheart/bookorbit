@@ -11443,7 +11443,8 @@
         "seeders": "Seeders",
         "size": "Size",
         "bitrate": "Bitrate",
-        "added": "Date added"
+        "added": "Date",
+        "popular": "Most popular"
       },
       "freeleechOnly": "Freeleech only ({count})",
       "clearFilters": "Clear filters",
@@ -11492,6 +11493,7 @@
       "language": "Language",
       "seederCountPlural": "{count, plural, one {# seeder} other {# seeders}}",
       "seederCountUnknown": "Seeders unknown",
+      "downloadCountPlural": "{count, plural, one {# download} other {# downloads}}",
       "format": "Format",
       "files": "Files",
       "fileLayout": {
@@ -11560,6 +11562,7 @@
       "scoreLabel": "Match score {score} out of 100",
       "scoreBreakdown": "How this release scored",
       "addedOn": "Added {date}",
+      "publishedYear": "Published {year}",
       "whyThisScore": "Why this score",
       "failures": {
         "unauthorized": "sign-in expired",

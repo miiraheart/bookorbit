@@ -131,6 +131,8 @@ export interface PluginReleaseCandidate {
   /** The source will refuse the download outright unless the account is privileged. */
   vipOnly?: boolean;
   publishedAt?: string;
+  /** "year" where the source knows only the year and publishedAt is padded to January 1. */
+  publishedPrecision?: "year";
   audio?: PluginAudioInfo;
   /** Primary-format files this release carries, where the source exposes a real file list. */
   primaryFileCount?: number;

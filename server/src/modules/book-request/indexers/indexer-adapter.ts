@@ -125,6 +125,8 @@ export interface ReleaseCandidate {
    */
   vipOnly?: boolean;
   publishedAt?: string;
+  /** "year" where the source knows only the year and publishedAt is padded to January 1. */
+  publishedPrecision?: 'year';
   /** Where the indexer publishes audio characteristics. Shown and sorted on, never scored. */
   audio?: ReleaseAudioInfo;
   /**

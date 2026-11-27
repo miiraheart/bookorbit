@@ -464,3 +464,16 @@ describe('toReleaseItem', () => {
     });
   });
 });
+
+describe('toReleaseItem published precision', () => {
+  it('carries a year-only marker and leaves a full date unmarked', () => {
+    const criteria = request();
+    const item = (overrides: Partial<ReleaseCandidate>) => toReleaseItem(scoreRelease(release(overrides), criteria), 'example', criteria);
+
+    expect(item({ publishedAt: '2011-01-01T00:00:00Z', publishedPrecision: 'year' })).toMatchObject({
+      publishedAt: '2011-01-01T00:00:00Z',
+      publishedPrecision: 'year',
+    });
+    expect(item({ publishedAt: '2024-05-03T10:00:00Z' }).publishedPrecision).toBeNull();
+  });
+});

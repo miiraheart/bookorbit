@@ -452,6 +452,8 @@ export interface ReleaseCandidateItem {
    */
   alreadyGrabbed: boolean;
   publishedAt: string | null;
+  /** "year" where the source knows only the year and publishedAt is padded to January 1. Null or absent is a full date. */
+  publishedPrecision?: "year" | null;
   /** Null where the indexer said nothing about the audio, which includes every ebook release. */
   audio: ReleaseAudioInfo | null;
   score: number;

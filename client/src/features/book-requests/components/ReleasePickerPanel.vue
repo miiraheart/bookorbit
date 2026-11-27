@@ -42,7 +42,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { formatChipStyle } from '@/features/book/lib/format-colors'
-import { formatDate, formatLanguageName, formatList, formatNumber } from '@/i18n/formatters'
+import { formatLanguageName, formatList, formatNumber } from '@/i18n/formatters'
 import { formatBytes } from '@/lib/formatting'
 import GrabReleaseDialog from './GrabReleaseDialog.vue'
 import ReleaseFileInspectionPanel from './ReleaseFileInspectionPanel.vue'
@@ -52,6 +52,7 @@ import RequestDrawerToolbar from './RequestDrawerToolbar.vue'
 import RequestEmptyState from './RequestEmptyState.vue'
 import EntityNotFound from '@/components/EntityNotFound.vue'
 import { formatKey, formatKeys, languageKey } from '../releaseFacets'
+import { downloadsText, releaseDateText } from '../releasePopularity'
 import { REQUEST_DRAWER } from '../requestDrawerContext'
 import { requestFailureText } from '../requestOutcome'
 import { protocolChipClass, sourceChipClass, sourceDotClass } from '../sourceColors'
@@ -753,7 +754,7 @@ function hasDetails(release: ReleaseCandidateItem, index: number): boolean {
 }
 
 function addedDate(release: ReleaseCandidateItem): string | null {
-  return release.publishedAt ? formatDate(new Date(release.publishedAt), { dateStyle: 'medium' }) : null
+  return releaseDateText(release, t)?.short ?? null
 }
 
 /** A swarm's health in its colour: enough seeders to rely on, a thin swarm, or none at all. */
@@ -867,6 +868,8 @@ function rowFacts(release: ReleaseCandidateItem): RowFact[] {
   }
   if (release.sizeBytes) facts.push({ key: 'size', numeric: true, text: formatBytes(release.sizeBytes), tone: 'text-foreground' })
   if (showsSeeders(release)) facts.push({ key: 'seeders', numeric: true, text: seederText(release), tone: seederTone(release) })
+  const downloads = downloadsText(release, t)
+  if (downloads) facts.push({ key: 'downloads', numeric: true, text: downloads, tone: 'text-foreground' })
   const audio = audioParts(release)
   if (audio.length) facts.push({ key: 'audio', numeric: true, text: audio.join(' · ') })
   const added = addedDate(release)
@@ -1747,7 +1750,7 @@ function showEverySource(): void {
                           </ul>
                         </template>
                         <p v-if="addedDate(release) || (isBest(index) && tiedWithBest > 0)" class="flex flex-wrap gap-x-1.5">
-                          <span v-if="addedDate(release)">{{ t('bookRequests.releases.addedOn', { date: addedDate(release) }) }}</span>
+                          <span v-if="addedDate(release)">{{ releaseDateText(release, t)?.long }}</span>
                           <span v-if="addedDate(release) && isBest(index) && tiedWithBest > 0" aria-hidden="true">·</span>
                           <span v-if="isBest(index) && tiedWithBest > 0">{{ t('bookRequests.releases.tiedWithBest', { count: tiedWithBest }) }}</span>
                         </p>

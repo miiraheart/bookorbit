@@ -96,3 +96,23 @@ describe('release popularity', () => {
     expect(comparePopularity({ seeders: 254 }, { seeders: null, grabs: 200 })).toBeLessThan(0);
   });
 });
+
+describe('popularity share table', () => {
+  it.each([
+    [null, null, null],
+    [0, null, 0],
+    [1, null, 0.1686],
+    [10, null, 0.5833],
+    [60, null, 1],
+    [254, null, 1],
+    [null, 12, 0.3011],
+    [null, 200, 0.6226],
+    [null, 5000, 1],
+    [null, 10207, 1],
+    [10, 200, 0.6226],
+    [30, 12, 0.8353],
+  ])('seeders %s and downloads %s give share %s, the same table the client picker sorts by', (seeders, grabs, share) => {
+    const actual = popularityShare({ seeders, grabs });
+    expect(actual === null ? null : Math.round(actual * 10_000) / 10_000).toBe(share);
+  });
+});

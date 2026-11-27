@@ -353,6 +353,7 @@ function sanitizeCandidate(raw: PluginReleaseCandidate, indexerId: number): Rele
     ...optional('author', text(raw.author, MAX_PLUGIN_TEXT_LENGTH)),
     ...optional('isbn', text(raw.isbn, MAX_PLUGIN_TEXT_LENGTH)),
     ...optional('publishedAt', text(raw.publishedAt, MAX_PLUGIN_TEXT_LENGTH)),
+    ...(raw.publishedPrecision === 'year' ? { publishedPrecision: 'year' as const } : {}),
     freeleech: raw.freeleech === true,
     alreadyGrabbed: raw.alreadyGrabbed === true,
     vipOnly: raw.vipOnly === true,

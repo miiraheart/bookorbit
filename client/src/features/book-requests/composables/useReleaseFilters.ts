@@ -3,8 +3,9 @@ import { classifyFileLayout, compareByTier } from '@bookorbit/types'
 import type { ReleaseCandidateItem, ReleaseFileLayout } from '@bookorbit/types'
 
 import { facetsOf, formatKeys, languageKey } from '../releaseFacets'
+import { hasPopularity, popularityShare } from '../releasePopularity'
 
-export const RELEASE_SORT_KEYS = ['score', 'seeders', 'size', 'bitrate', 'added'] as const
+export const RELEASE_SORT_KEYS = ['score', 'popular', 'seeders', 'size', 'bitrate', 'added'] as const
 export type ReleaseSortKey = (typeof RELEASE_SORT_KEYS)[number]
 
 /** Which filter a facet count must ignore so a chip never hides its own options. */
@@ -81,6 +82,8 @@ export function useReleaseFilters(releases: Ref<ReleaseCandidateItem[]>) {
   /** A release that states nothing on the sorted axis sorts last rather than as a zero. */
   function orderOf(release: ReleaseCandidateItem): number {
     switch (sortKey.value) {
+      case 'popular':
+        return popularityShare(release) ?? -1
       case 'seeders':
         return release.seeders ?? -1
       case 'size':
@@ -145,6 +148,8 @@ export function useReleaseFilters(releases: Ref<ReleaseCandidateItem[]>) {
   const availableSortKeys = computed<ReleaseSortKey[]>(() =>
     RELEASE_SORT_KEYS.filter((key) => {
       switch (key) {
+        case 'popular':
+          return releases.value.some(hasPopularity)
         case 'seeders':
           return anySeeders.value
         case 'size':

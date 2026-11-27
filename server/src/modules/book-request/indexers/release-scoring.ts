@@ -207,6 +207,7 @@ export function toReleaseItem(scored: ScoredRelease, indexerName: string, reques
     vipOnly: candidate.vipOnly ?? false,
     alreadyGrabbed: candidate.alreadyGrabbed ?? false,
     publishedAt: candidate.publishedAt ?? null,
+    publishedPrecision: candidate.publishedPrecision ?? null,
     audio: candidate.audio ?? null,
   };
 

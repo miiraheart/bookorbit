@@ -682,6 +682,23 @@ describe('ReleasePickerPanel', () => {
     expect(tracker!.text()).toContain('Torrent')
   })
 
+  it('shows a direct source download count and a year-only date as the year', async () => {
+    const item = release({
+      indexerId: 2,
+      indexerName: 'Library Genesis',
+      guid: 'aa',
+      seeders: null,
+      grabs: 10207,
+      publishedAt: '2011-01-01T00:00:00Z',
+      publishedPrecision: 'year',
+    })
+    const row = releaseRows(await render({ ...MIXED, releases: [item] }))[0]
+
+    expect(row.text()).toContain('10,207 downloads')
+    expect(row.text()).toContain('Published 2011')
+    expect(row.text()).not.toContain('Jan')
+  })
+
   it('uses singular forms for one seeder and one chapter', async () => {
     const item = release({
       seeders: 1,

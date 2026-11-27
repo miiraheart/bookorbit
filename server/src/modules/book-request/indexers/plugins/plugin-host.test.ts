@@ -169,6 +169,17 @@ describe('PluginIndexerAdapter', () => {
       expect(releases.map((release) => release.grabs)).toEqual([1204, null, null, null, null]);
     });
 
+    it('keeps only the literal year precision marker', async () => {
+      const marks = ['year', 'day', 2011, undefined].map((value, index) => ({
+        guid: `p${index}`,
+        title: 'Dune',
+        publishedAt: '2011-01-01T00:00:00Z',
+        publishedPrecision: value,
+      }));
+      const releases = await searched(marks);
+      expect(releases.map((release) => release.publishedPrecision)).toEqual(['year', undefined, undefined, undefined]);
+    });
+
     it('normalizes seed goals without coercing plugin values or converting minutes twice', async () => {
       const releases = await searched([
         { guid: 'valid', title: 'Dune', seedRatioGoal: 1.5, seedTimeMinutes: 60.2 },
