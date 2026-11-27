@@ -15,7 +15,6 @@ const BATCH = 50
 
 type WaitingRequest = BookRequestItem & { mediaKind: BookRequestMediaKind }
 
-/** Still waiting for a release, with nothing transferring for it yet. */
 export function waitsForRelease(request: BookRequestItem): request is WaitingRequest {
   const transfer = request.download?.status
   return (
