@@ -96,9 +96,9 @@ describe('UploadProcessorService', () => {
     selectLimit.mockResolvedValue([]); // no existing book by default
     selectOrderBy.mockResolvedValue([]); // no content files to rank by default
 
-    insertBooksValues.mockReturnValue({ returning: insertBooksReturning });
+    insertBooksValues.mockReturnValue({ returning: insertBooksReturning, onConflictDoNothing: () => ({ returning: insertBooksReturning }) });
     insertBooksReturning.mockResolvedValue([{ id: 42 }]);
-    insertBookMetadataValues.mockResolvedValue(undefined);
+    insertBookMetadataValues.mockReturnValue({ onConflictDoNothing: () => Promise.resolve(undefined) });
     insertBookFilesOnConflict.mockReturnValue({ returning: insertBookFilesReturning });
     insertBookFilesValues.mockReturnValue({ returning: insertBookFilesReturning, onConflictDoUpdate: insertBookFilesOnConflict });
     insertBookFilesReturning.mockResolvedValue([{ id: 420 }]);
@@ -488,6 +488,38 @@ describe('UploadProcessorService', () => {
    * Filing a 31-track audiobook through `createBookRecord` opened 31 transactions, so a failure on
    * track three left the first two behind as a book nobody asked for.
    */
+  describe('a watcher scan inserting the same folder first', () => {
+    beforeEach(() => insertBooksReturning.mockResolvedValueOnce([]));
+
+    it("adopts the scan's row while it holds no content file", async () => {
+      selectLimit
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.createUnitBookRecords(1, 2, [
+        { folderPath: '/folder', absolutePath: '/folder/book.epub', relPath: 'folder/book.epub', format: 'epub', sizeBytes: 10 },
+      ]);
+
+      expect(result).toEqual({ bookIds: [77], createdBookIds: [77], attachedFileIds: [], replacedPrimaries: [] });
+      expect(updateBooksSet).toHaveBeenCalledWith(expect.objectContaining({ status: 'present' }));
+      expect(insertBookFilesValues).toHaveBeenCalledWith(expect.objectContaining({ bookId: 77, absolutePath: '/folder/book.epub' }));
+      expect(updateBooksSet).toHaveBeenCalledWith({ primaryFileId: 420 });
+    });
+
+    it('refuses a row that already holds another content file', async () => {
+      selectLimit
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockResolvedValueOnce([{ id: 5 }]);
+
+      await expect(service.createBookRecord(1, 2, '/folder', '/folder/book.epub', 'folder/book.epub', 'epub', 10)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(insertBookFilesValues).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createUnitBookRecords', () => {
     const unitFiles = [
       { folderPath: '/library/Book', absolutePath: '/library/Book/track-01.mp3', relPath: 'Book/track-01.mp3', format: 'mp3', sizeBytes: 10 },

@@ -24,6 +24,7 @@ import { ScannerService } from '../scanner/scanner.service';
 import { METADATA_AUDIO_FORMATS } from '../metadata/metadata-extraction.service';
 import { computeFileHash } from '../scanner/lib/hash';
 import { inspectEpubMediaOverlayFields } from '../reader/epub/epub-media-overlay-capability';
+import { insertOrAdoptBookRow } from './raced-book-row';
 
 type Db = NodePgDatabase<typeof schema>;
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -342,15 +343,16 @@ export class UploadProcessorService {
       };
     }
 
-    const [book] = await tx.insert(books).values({ libraryId, libraryFolderId, folderPath, status: 'present' }).returning({ id: books.id });
+    const book = await insertOrAdoptBookRow(tx, { libraryId, libraryFolderId, folderPath }, absolutePath);
     if (!book) throw new InternalServerErrorException('Failed to create book record');
 
     // Always create an empty metadata row so joins never return null (mirrors scanner behaviour).
-    await tx.insert(bookMetadata).values({ bookId: book.id });
+    await tx.insert(bookMetadata).values({ bookId: book.id }).onConflictDoNothing();
 
     const [fileRow] = await tx
       .insert(bookFiles)
       .values({ ...values, bookId: book.id })
+      .onConflictDoUpdate({ target: bookFiles.absolutePath, set: { ...values, bookId: book.id } })
       .returning({ id: bookFiles.id });
     if (!fileRow) throw new InternalServerErrorException('Failed to create book file');
 
